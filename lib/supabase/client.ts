@@ -1,0 +1,24 @@
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+
+let browserClient: SupabaseClient | null = null;
+let serverClient: SupabaseClient | null = null;
+
+export function getSupabaseBrowser(): SupabaseClient | null {
+  if (browserClient) return browserClient;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) return null;
+  browserClient = createClient(url, key);
+  return browserClient;
+}
+
+export function getSupabaseAdmin(): SupabaseClient | null {
+  if (serverClient) return serverClient;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return null;
+  serverClient = createClient(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  return serverClient;
+}
