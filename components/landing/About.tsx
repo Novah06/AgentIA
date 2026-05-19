@@ -125,14 +125,9 @@ export function About() {
                     {i + 1}
                   </div>
                   <div className="flex-1 md:mt-6">
-                    <div className="flex flex-wrap items-baseline gap-2">
-                      <h4 className="heading-section text-base text-text-primary">
-                        {step.title}
-                      </h4>
-                      {step.when && (
-                        <span className="text-xs text-accent">({step.when})</span>
-                      )}
-                    </div>
+                    <h4 className="heading-section text-base text-text-primary">
+                      {step.title}
+                    </h4>
                     <p className="mt-2 text-sm leading-relaxed text-text-secondary">
                       {step.body}
                     </p>
