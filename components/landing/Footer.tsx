@@ -37,7 +37,6 @@ export function Footer() {
 
         <div className="mt-10 flex flex-col items-start gap-3 border-t border-[rgba(0,229,255,0.08)] pt-6 text-xs text-text-muted md:flex-row md:items-center md:justify-between">
           <span>© 2025 SynapseAI Workforce. Tous droits réservés.</span>
-          <span>Claude products are ad-free</span>
         </div>
       </div>
     </footer>
