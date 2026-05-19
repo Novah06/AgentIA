@@ -57,7 +57,7 @@ export const AGENT_CONFIG: Record<AgentId, AgentConfig> = {
       'Chain-of-thought obligatoire sur chaque analyse',
       'Scratchpad financier structuré',
       'Vérification contradictoire sur décisions > seuil',
-      '4 niveaux de certitude : ✅⚠️❓🚨',
+      '4 niveaux de certitude (certain, probable, à confirmer, escalade)',
       'Spécialiste TVA sur encaissements, auto-liquidation BTP, retenues de garantie',
     ],
     contextSummary:
