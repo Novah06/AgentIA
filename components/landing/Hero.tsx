@@ -22,8 +22,12 @@ export function Hero() {
 
           {/* Title */}
           <h1
-            className="heading-display mb-8 text-text-primary"
-            style={{ fontSize: 'clamp(42px, 9vw, 86px)' }}
+            className="heading-display mb-10 text-text-primary"
+            style={{
+              fontSize: 'clamp(38px, 7.5vw, 80px)',
+              lineHeight: '1.08',
+              letterSpacing: '-0.03em',
+            }}
           >
             Vos collaborateurs
             <br />
@@ -33,10 +37,13 @@ export function Hero() {
           </h1>
 
           {/* Subtitle */}
-          <p className="mb-10 max-w-2xl text-lg leading-relaxed text-text-secondary md:text-xl">
-            SynapseAI Workforce déploie des agents intelligents autonomes qui prennent en charge vos
-            postes comptables, RH et administratifs — 24h/24, sans onboarding, pour 70% du coût
-            d'un salarié.
+          <p
+            className="mb-12 max-w-xl text-lg leading-[1.75] text-text-secondary"
+            style={{ fontSize: 'clamp(15px, 2vw, 19px)' }}
+          >
+            SynapseAI Workforce déploie des agents intelligents autonomes
+            qui prennent en charge vos postes comptables, RH et administratifs —
+            24h/24, sans onboarding, pour 70&nbsp;% du coût d'un salarié.
           </p>
 
           {/* CTAs */}

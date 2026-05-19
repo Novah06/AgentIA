@@ -51,8 +51,18 @@ function AgentCard({ id }: { id: AgentId }) {
         style={{ background: a.color }}
       />
 
+      {/* Zone illustration — prend toute la largeur de la card */}
+      <div className="relative -mx-6 -mt-6 mb-6 flex h-52 items-end overflow-hidden rounded-t-2xl"
+        style={{ background: `linear-gradient(160deg, ${a.color}18 0%, ${a.color}06 100%)` }}
+      >
+        <AgentAvatar agent={id} size={208} large className="mx-auto" />
+        {/* Dégradé de fondu vers le bas */}
+        <div className="absolute inset-x-0 bottom-0 h-20"
+          style={{ background: `linear-gradient(transparent, var(--bg-card))` }}
+        />
+      </div>
+
       <div className="relative flex items-start gap-4">
-        <AgentAvatar agent={id} size={64} />
         <div className="flex-1">
           <div
             className="inline-flex rounded-full px-2.5 py-1 text-[11px] font-medium uppercase tracking-widest"
@@ -85,7 +95,7 @@ function AgentCard({ id }: { id: AgentId }) {
         <ul className="mt-3 space-y-2 px-1">
           {a.missions.map((m) => (
             <li key={m.title} className="flex gap-2 text-sm text-text-secondary">
-              <span aria-hidden>{m.icon}</span>
+              <span className="mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: a.color }} />
               <span>{m.title}</span>
             </li>
           ))}

@@ -1,30 +1,77 @@
+import Image from 'next/image';
 import type { AgentId } from '@/lib/agents';
 
 interface Props {
   agent: AgentId;
   size?: number;
   className?: string;
+  /** Passe true pour afficher en mode "illustration grande" (card agents / chat sidebar) */
+  large?: boolean;
 }
 
 const colors: Record<AgentId, { primary: string; bg: string; accent: string }> = {
-  aria: { primary: '#00e5ff', bg: '#0a1a22', accent: '#7b8cff' },
-  nova: { primary: '#3dffb0', bg: '#0a201a', accent: '#9bffd4' },
+  aria:  { primary: '#00e5ff', bg: '#0a1a22', accent: '#7b8cff' },
+  nova:  { primary: '#3dffb0', bg: '#0a201a', accent: '#9bffd4' },
   felix: { primary: '#f0c040', bg: '#221a08', accent: '#ffd97a' },
 };
 
-export function AgentAvatar({ agent, size = 56, className = '' }: Props) {
+/**
+ * Chemins des illustrations personnalisées.
+ * Place tes fichiers dans /public/agents/ et mets à jour ces chemins.
+ * Laisse null pour utiliser le fallback SVG intégré.
+ */
+const ILLUSTRATIONS: Record<AgentId, string | null> = {
+  aria:  null,   // ex: '/agents/aria.png'
+  nova:  null,   // ex: '/agents/nova.png'
+  felix: null,   // ex: '/agents/felix.png'
+};
+
+export function AgentAvatar({ agent, size = 56, className = '', large = false }: Props) {
   const c = colors[agent];
+  const illustration = ILLUSTRATIONS[agent];
+
+  if (illustration) {
+    return (
+      <div
+        className={`relative overflow-hidden ${large ? 'rounded-3xl' : 'rounded-2xl'} shrink-0 ${className}`}
+        style={{
+          width: size,
+          height: size,
+          background: c.bg,
+          border: `1px solid ${c.primary}33`,
+        }}
+      >
+        <Image
+          src={illustration}
+          alt={`Illustration ${agent}`}
+          fill
+          className="object-cover object-top"
+          sizes={`${size}px`}
+          priority
+        />
+        {/* Halo couleur en bas */}
+        <div
+          className="absolute bottom-0 left-0 right-0 h-1/3"
+          style={{ background: `linear-gradient(transparent, ${c.bg}cc)` }}
+        />
+      </div>
+    );
+  }
+
+  /* ── Fallback SVG ── */
   return (
     <div
-      className={`relative inline-flex shrink-0 items-center justify-center rounded-2xl ${className}`}
+      className={`relative inline-flex shrink-0 items-center justify-center ${large ? 'rounded-3xl' : 'rounded-2xl'} ${className}`}
       style={{ width: size, height: size, background: c.bg, border: `1px solid ${c.primary}33` }}
     >
-      {agent === 'aria' && <AriaIcon color={c.primary} accent={c.accent} size={size * 0.6} />}
-      {agent === 'nova' && <NovaIcon color={c.primary} accent={c.accent} size={size * 0.6} />}
+      {agent === 'aria'  && <AriaIcon  color={c.primary} accent={c.accent} size={size * 0.6} />}
+      {agent === 'nova'  && <NovaIcon  color={c.primary} accent={c.accent} size={size * 0.6} />}
       {agent === 'felix' && <FelixIcon color={c.primary} accent={c.accent} size={size * 0.6} />}
     </div>
   );
 }
+
+/* ── Icônes SVG fallback ─────────────────────────────────────────── */
 
 function AriaIcon({ color, accent, size }: { color: string; accent: string; size: number }) {
   return (
