@@ -14,9 +14,15 @@ create table if not exists client_profiles (
   collective_agreement text,
   autonomy_threshold integer default 500,
   active_agents text[] default '{}',
+  agents_status jsonb default '{"aria":"inactive","nova":"inactive","felix":"inactive"}'::jsonb,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+
+-- Migration pour les bases existantes :
+alter table client_profiles
+  add column if not exists agents_status jsonb
+  default '{"aria":"inactive","nova":"inactive","felix":"inactive"}'::jsonb;
 
 create table if not exists conversations (
   id uuid primary key default gen_random_uuid(),

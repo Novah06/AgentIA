@@ -32,6 +32,7 @@ export function ContactForm() {
       phone: fd.get('phone'),
       company: fd.get('company'),
       employees: fd.get('employees'),
+      secteur: fd.get('secteur'),
       agents,
       message: fd.get('message'),
     };
@@ -106,6 +107,30 @@ export function ContactForm() {
                     <option value="10-49">10-49 salariés</option>
                     <option value="50-249">50-249 salariés</option>
                     <option value="250+">250+ salariés</option>
+                  </select>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="mb-2 block text-xs font-medium uppercase tracking-widest text-text-secondary">
+                    Secteur d'activité
+                  </label>
+                  <select
+                    name="secteur"
+                    className="w-full rounded-lg border border-[rgba(0,229,255,0.15)] bg-bg-base px-4 py-3 text-sm text-text-primary outline-none transition-colors focus:border-accent"
+                    defaultValue=""
+                  >
+                    <option value="" disabled>
+                      Choisir votre secteur…
+                    </option>
+                    <option value="btp">BTP / Construction</option>
+                    <option value="commerce">Commerce / Distribution</option>
+                    <option value="services">Services / Conseil</option>
+                    <option value="tech">Tech / SaaS / Start-up</option>
+                    <option value="industrie">Industrie / Logistique</option>
+                    <option value="sante">Santé / Médico-social</option>
+                    <option value="immobilier">Immobilier</option>
+                    <option value="expertise">Expertise comptable / Juridique</option>
+                    <option value="autre">Autre</option>
                   </select>
                 </div>
 

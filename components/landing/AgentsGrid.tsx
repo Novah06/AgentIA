@@ -81,7 +81,7 @@ function AgentCard({ id }: { id: AgentId }) {
         </span>
         <span className="text-sm text-text-secondary">/mois</span>
         <span className="ml-1 text-xs text-text-muted">
-          · installation {a.pricing.install.toLocaleString('fr-FR')} €
+          · Pack Lancement {a.pricing.install.toLocaleString('fr-FR')} €
         </span>
       </div>
 

@@ -6,6 +6,21 @@ import { DashboardNav } from '@/components/dashboard/DashboardNav';
 
 const AGENTS: AgentId[] = ['aria', 'nova', 'felix'];
 
+type AgentStatus = 'active' | 'configuring' | 'inactive';
+
+/**
+ * Source réelle : champ `agents_status` (JSONB) de la table `client_profiles`.
+ * Tant que la lecture Supabase n'est pas branchée côté auth, on utilise
+ * une valeur de démonstration que tu peux modifier ici pour tester chaque état.
+ */
+function getAgentStatusMap(): Record<AgentId, AgentStatus> {
+  return {
+    aria: 'active',
+    nova: 'configuring',
+    felix: 'inactive',
+  };
+}
+
 const RECENT_ACTIVITY = [
   { agent: 'ARIA', action: 'Rapport journalier généré', when: 'il y a 3h' },
   { agent: 'NOVA', action: 'Candidature scorée (8/10)', when: 'il y a 5h' },
@@ -21,6 +36,8 @@ export default async function DashboardPage() {
   } catch {
     firstName = undefined;
   }
+
+  const statusMap = getAgentStatusMap();
 
   return (
     <main className="min-h-screen bg-bg-base">
@@ -38,7 +55,7 @@ export default async function DashboardPage() {
           <h2 className="heading-section mb-6 text-xl text-text-primary">Mes agents</h2>
           <div className="grid gap-6 lg:grid-cols-3">
             {AGENTS.map((id) => (
-              <AgentCard key={id} id={id} />
+              <AgentCard key={id} id={id} status={statusMap[id]} />
             ))}
           </div>
         </section>
@@ -89,19 +106,14 @@ export default async function DashboardPage() {
   );
 }
 
-function AgentCard({ id }: { id: AgentId }) {
+function AgentCard({ id, status }: { id: AgentId; status: AgentStatus }) {
   const a = AGENT_CONFIG[id];
+
   return (
-    <Link
-      href={`/dashboard/${id}`}
-      className="card group flex h-full flex-col"
-      style={{ borderColor: `${a.color}22` }}
-    >
-      <div className="flex items-start justify-between">
+    <div className="card group flex h-full flex-col" style={{ borderColor: `${a.color}22` }}>
+      <div className="flex items-start justify-between gap-3">
         <AgentAvatar agent={id} size={64} className="transition-transform group-hover:scale-105" />
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-400">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Actif
-        </span>
+        <StatusBadge status={status} />
       </div>
 
       <div className="mt-5">
@@ -109,13 +121,91 @@ function AgentCard({ id }: { id: AgentId }) {
         <p className="text-sm text-text-secondary">{a.domain}</p>
       </div>
 
-      <p className="mt-4 text-xs text-text-muted">Rapport envoyé il y a 2h</p>
+      <StatusMessage status={status} />
 
       <div className="mt-auto pt-6">
-        <span className="text-sm font-semibold" style={{ color: a.color }}>
-          Ouvrir le chat →
-        </span>
+        <AgentCardCta id={id} status={status} />
       </div>
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: AgentStatus }) {
+  if (status === 'active') {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-400">
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Actif
+      </span>
+    );
+  }
+  if (status === 'configuring') {
+    return (
+      <span
+        className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium"
+        style={{ background: 'rgba(186,117,23,0.15)', color: '#f0a040' }}
+      >
+        <span className="h-1.5 w-1.5 rounded-full" style={{ background: '#f0a040' }} /> En configuration
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-2.5 py-1 text-[11px] font-medium text-text-secondary">
+      <span className="h-1.5 w-1.5 rounded-full bg-text-muted" /> Non souscrit
+    </span>
+  );
+}
+
+function StatusMessage({ status }: { status: AgentStatus }) {
+  if (status === 'active') {
+    return <p className="mt-4 text-xs text-text-muted">Dernière activité : il y a 2h</p>;
+  }
+  if (status === 'configuring') {
+    return (
+      <p className="mt-4 text-xs leading-relaxed text-text-secondary">
+        Votre agent est en cours de personnalisation sur votre entreprise.
+        Vous recevrez un email dès qu'il est prêt.
+      </p>
+    );
+  }
+  return (
+    <p className="mt-4 text-xs leading-relaxed text-text-secondary">
+      Cet agent n'est pas inclus dans votre abonnement actuel.
+    </p>
+  );
+}
+
+function AgentCardCta({ id, status }: { id: AgentId; status: AgentStatus }) {
+  const a = AGENT_CONFIG[id];
+
+  if (status === 'active') {
+    return (
+      <Link
+        href={`/dashboard/${id}`}
+        className="inline-flex items-center text-sm font-semibold transition-opacity hover:opacity-80"
+        style={{ color: a.color }}
+      >
+        Ouvrir le chat →
+      </Link>
+    );
+  }
+
+  if (status === 'configuring') {
+    return (
+      <span
+        title="Votre agent sera activé sous 3 à 5 jours ouvrés."
+        className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-1.5 text-xs text-text-muted"
+      >
+        Activation dans 3 à 5 jours
+      </span>
+    );
+  }
+
+  return (
+    <Link
+      href={`/#tarifs?agent=${id}`}
+      className="inline-flex items-center text-sm font-semibold text-accent transition-opacity hover:opacity-80"
+    >
+      Découvrir cet agent →
     </Link>
   );
 }

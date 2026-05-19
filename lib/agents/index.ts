@@ -24,7 +24,24 @@ export interface AgentConfig {
   missions: { icon: string; title: string }[];
   capabilities: string[];
   contextSummary: string;
+  launchPack: { items: string[]; deliveryDelay: string };
 }
+
+export const PACK_LAUNCH_PRICE = 6500;
+export const PACK_MONTHLY_PRICE = 6900;
+export const PACK_LAUNCH_DETAILS = {
+  items: [
+    'Entretien de configuration global (2h avec votre équipe)',
+    'Personnalisation complète des 3 agents sur votre entreprise',
+    '15 tests de validation (5 par agent) sur vos données réelles',
+    'Activation de votre espace client SynapseAI avec les 3 agents',
+    "Session d'onboarding (1h30 de prise en main)",
+    "3 guides d'utilisation personnalisés (un par agent)",
+    'Support prioritaire les 30 premiers jours',
+    'Coordination inter-agents (ARIA, NOVA et FELIX partagent le contexte entreprise)',
+  ],
+  deliveryDelay: '5 à 7 jours ouvrés après signature',
+};
 
 export const AGENT_CONFIG: Record<AgentId, AgentConfig> = {
   aria: {
@@ -50,7 +67,7 @@ export const AGENT_CONFIG: Record<AgentId, AgentConfig> = {
       { icon: '🧾', title: 'Traitement factures & TVA (dont TVA sur encaissements BTP)' },
       { icon: '⚡', title: 'Réforme e-invoicing 2026 (audit conformité, PPF/PDP)' },
       { icon: '💰', title: 'Prévision de trésorerie 13 semaines glissantes' },
-      { icon: '🔍', title: "Détection d'anomalies bancaires en temps réel" },
+      { icon: '🔍', title: "Détection d'anomalies bancaires quotidienne" },
       { icon: '📋', title: 'Rapport mensuel de clôture (livré le 5 du mois)' },
     ],
     capabilities: [
@@ -62,6 +79,18 @@ export const AGENT_CONFIG: Record<AgentId, AgentConfig> = {
     ],
     contextSummary:
       'Suit la trésorerie, la TVA et les anomalies bancaires de votre entreprise. Connaît votre régime fiscal et votre logiciel comptable.',
+    launchPack: {
+      items: [
+        'Entretien de configuration (1h avec votre équipe)',
+        "Personnalisation complète d'ARIA sur votre entreprise (secteur, régime fiscal, logiciels, interlocuteurs, seuils)",
+        '5 tests de validation sur vos données réelles',
+        'Activation de votre espace client SynapseAI',
+        "Session d'onboarding (1h de prise en main)",
+        "Guide d'utilisation personnalisé",
+        'Support prioritaire les 30 premiers jours',
+      ],
+      deliveryDelay: '3 à 5 jours ouvrés après signature',
+    },
   },
   nova: {
     id: 'nova',
@@ -84,7 +113,7 @@ export const AGENT_CONFIG: Record<AgentId, AgentConfig> = {
     missions: [
       { icon: '🎯', title: 'Sourcing & scoring candidatures (/10 avec grille structurée)' },
       { icon: '📝', title: 'Rédaction des annonces (inclusives, RGPD, optimisées)' },
-      { icon: '🤝', title: 'Conduite des entretiens RH (méthode STAR, note /20)' },
+      { icon: '🤝', title: "Préparation et grille d'entretien RH (méthode STAR, notation /20)" },
       { icon: '📅', title: 'Onboarding J-15 → J+90 (DPAE, visite médicale, accès SI)' },
       { icon: '⚖️', title: "Protection juridique (discrimination, droit du travail, CCN)" },
       { icon: '📊', title: 'KPIs RH mensuels (turnover, time-to-hire, satisfaction)' },
@@ -98,6 +127,18 @@ export const AGENT_CONFIG: Record<AgentId, AgentConfig> = {
     ],
     contextSummary:
       "Pilote vos recrutements, onboardings et KPIs RH. Maîtrise la CCN applicable et les obligations légales.",
+    launchPack: {
+      items: [
+        'Entretien de configuration (1h avec votre équipe)',
+        'Personnalisation complète de NOVA sur votre entreprise (secteur, CCN applicable, postes prioritaires, canaux autorisés)',
+        '5 tests de validation sur vos cas RH réels',
+        'Activation de votre espace client SynapseAI',
+        "Session d'onboarding (1h de prise en main)",
+        "Guide d'utilisation personnalisé",
+        'Support prioritaire les 30 premiers jours',
+      ],
+      deliveryDelay: '3 à 5 jours ouvrés après signature',
+    },
   },
   felix: {
     id: 'felix',
@@ -134,6 +175,18 @@ export const AGENT_CONFIG: Record<AgentId, AgentConfig> = {
     ],
     contextSummary:
       'Surveille contrats, agendas et courriers. Alerte sur tout risque administratif ou financier silencieux.',
+    launchPack: {
+      items: [
+        'Entretien de configuration (1h avec votre équipe)',
+        'Personnalisation complète de FELIX sur votre entreprise (prestataires, contrats actifs, budget autonome, préférences agenda)',
+        '5 tests de validation sur vos données réelles',
+        'Activation de votre espace client SynapseAI',
+        "Session d'onboarding (1h de prise en main)",
+        "Guide d'utilisation personnalisé",
+        'Support prioritaire les 30 premiers jours',
+      ],
+      deliveryDelay: '3 à 5 jours ouvrés après signature',
+    },
   },
 };
 

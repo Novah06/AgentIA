@@ -1,5 +1,11 @@
 import Link from 'next/link';
-import { AGENT_CONFIG, type AgentId } from '@/lib/agents';
+import {
+  AGENT_CONFIG,
+  PACK_LAUNCH_DETAILS,
+  PACK_LAUNCH_PRICE,
+  PACK_MONTHLY_PRICE,
+  type AgentId,
+} from '@/lib/agents';
 import { Reveal } from '@/components/ui/Reveal';
 
 const ORDER: AgentId[] = ['aria', 'nova', 'felix'];
@@ -29,7 +35,10 @@ export function Pricing() {
           </Reveal>
         </div>
 
-        <p className="mt-10 text-center text-xs text-text-muted">
+        <p className="mx-auto mt-10 max-w-2xl text-center text-xs leading-relaxed text-text-muted">
+          Le Pack Lancement est facturé une seule fois à l'activation.
+          L'abonnement mensuel démarre à la date d'activation de votre espace client.
+          <br />
           Engagement minimum 3 mois. Préavis de résiliation 30 jours. Prix HT.
         </p>
       </div>
@@ -61,16 +70,16 @@ function PricingCard({ id }: { id: AgentId }) {
           <span className="text-sm text-text-secondary">/mois</span>
         </div>
         <p className="mt-1 text-xs text-text-muted">
-          Installation {a.pricing.install.toLocaleString('fr-FR')} € (one-shot)
+          Pack Lancement {a.pricing.install.toLocaleString('fr-FR')} € (one-shot)
         </p>
       </div>
+
+      <LaunchPackAccordion color={a.color} items={a.launchPack.items} delay={a.launchPack.deliveryDelay} />
 
       <ul className="mt-6 space-y-2.5">
         {a.missions.slice(0, 6).map((m) => (
           <li key={m.title} className="flex gap-2 text-sm text-text-secondary">
-            <span className="mt-0.5 shrink-0" style={{ color: a.color }}>
-              ✓
-            </span>
+            <span className="mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: a.color }} />
             <span>{m.title}</span>
           </li>
         ))}
@@ -108,31 +117,33 @@ function PackCard() {
 
       <div>
         <div className="flex items-baseline gap-1">
-          <span className="font-display text-4xl font-bold text-text-primary">6 900 €</span>
+          <span className="font-display text-4xl font-bold text-text-primary">
+            {PACK_MONTHLY_PRICE.toLocaleString('fr-FR')} €
+          </span>
           <span className="text-sm text-text-secondary">/mois</span>
         </div>
         <p className="mt-1 text-xs text-text-muted">
-          <span className="line-through opacity-60">7 800 €</span> · Installation 6 500 €{' '}
+          <span className="line-through opacity-60">7 800 €</span> · Pack Lancement{' '}
+          {PACK_LAUNCH_PRICE.toLocaleString('fr-FR')} €{' '}
           <span className="line-through opacity-60">5 800 €</span>
         </p>
       </div>
 
+      <LaunchPackAccordion color="#00e5ff" items={PACK_LAUNCH_DETAILS.items} delay={PACK_LAUNCH_DETAILS.deliveryDelay} />
+
       <ul className="mt-6 space-y-2.5 text-sm text-text-secondary">
-        <li className="flex gap-2">
-          <span className="text-accent">✓</span> Les 3 agents activés
-        </li>
-        <li className="flex gap-2">
-          <span className="text-accent">✓</span> Coordination inter-agents
-        </li>
-        <li className="flex gap-2">
-          <span className="text-accent">✓</span> Rapport hebdo consolidé
-        </li>
-        <li className="flex gap-2">
-          <span className="text-accent">✓</span> Onboarding express &lt;24h
-        </li>
-        <li className="flex gap-2">
-          <span className="text-accent">✓</span> Account manager dédié
-        </li>
+        {[
+          'Les 3 agents activés',
+          'Coordination inter-agents',
+          'Rapport hebdo consolidé',
+          'Onboarding express <24h',
+          'Account manager dédié',
+        ].map((label) => (
+          <li key={label} className="flex gap-2">
+            <span className="mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+            <span>{label}</span>
+          </li>
+        ))}
       </ul>
 
       <p className="mt-6 text-xs italic text-text-muted">Équivalent 3 postes CDI : 108–150k€/an</p>
@@ -141,5 +152,48 @@ function PackCard() {
         Commander le Pack →
       </Link>
     </div>
+  );
+}
+
+function LaunchPackAccordion({
+  color,
+  items,
+  delay,
+}: {
+  color: string;
+  items: string[];
+  delay: string;
+}) {
+  return (
+    <details className="group/details mt-4 [&_summary::-webkit-details-marker]:hidden">
+      <summary
+        className="flex cursor-pointer items-center justify-between rounded-lg border px-3 py-2 text-xs font-medium text-text-primary transition-colors"
+        style={{
+          background: 'var(--bg-card-hover)',
+          borderColor: `${color}25`,
+        }}
+      >
+        Ce qu'inclut le Pack Lancement
+        <span
+          className="transition-transform group-open/details:rotate-180"
+          style={{ color }}
+        >
+          ▾
+        </span>
+      </summary>
+      <div className="mt-2 rounded-lg border px-3 py-3" style={{ background: 'var(--bg-card-hover)', borderColor: `${color}15` }}>
+        <ul className="space-y-1.5">
+          {items.map((item) => (
+            <li key={item} className="flex gap-2 text-xs leading-relaxed text-text-secondary">
+              <span style={{ color }} className="shrink-0">→</span>
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-3 border-t border-[rgba(0,229,255,0.08)] pt-2 text-[11px] text-text-muted">
+          Délai d'activation : {delay}
+        </p>
+      </div>
+    </details>
   );
 }

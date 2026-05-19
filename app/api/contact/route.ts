@@ -10,9 +10,22 @@ interface ContactPayload {
   phone?: string;
   company?: string;
   employees?: string;
+  secteur?: string;
   agents?: string[];
   message?: string;
 }
+
+const SECTEUR_LABELS: Record<string, string> = {
+  btp: 'BTP / Construction',
+  commerce: 'Commerce / Distribution',
+  services: 'Services / Conseil',
+  tech: 'Tech / SaaS / Start-up',
+  industrie: 'Industrie / Logistique',
+  sante: 'Santé / Médico-social',
+  immobilier: 'Immobilier',
+  expertise: 'Expertise comptable / Juridique',
+  autre: 'Autre',
+};
 
 export async function POST(req: Request) {
   let body: ContactPayload;
@@ -71,6 +84,7 @@ function renderEmail(p: ContactPayload): string {
     `Téléphone : ${p.phone || '—'}`,
     `Entreprise : ${p.company}`,
     `Effectif : ${p.employees || '—'}`,
+    `Secteur : ${(p.secteur && SECTEUR_LABELS[p.secteur]) || p.secteur || '—'}`,
     `Agents : ${(p.agents || []).join(', ') || '—'}`,
     '',
     'Message :',
