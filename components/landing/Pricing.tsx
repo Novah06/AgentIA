@@ -110,7 +110,7 @@ function PackCard() {
 
       <div className="badge w-fit !text-[11px]">Les 3 agents</div>
 
-      <h3 className="heading-section mt-4 text-2xl text-text-primary">Pack SynapseAI</h3>
+      <h3 className="heading-section mt-4 text-2xl text-text-primary">Pack OperisAI</h3>
       <p className="mt-1 text-sm text-text-secondary">ARIA + NOVA + FELIX</p>
 
       <div className="my-6 border-t border-[rgba(0,229,255,0.08)]" />

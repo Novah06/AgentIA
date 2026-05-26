@@ -7,7 +7,7 @@ export function Footer() {
       <div className="container-narrow">
         <div className="flex flex-col items-start gap-10 md:flex-row md:justify-between">
           <div>
-            <Logo />
+            <Logo variant="full" size={36} />
             <p className="mt-4 max-w-xs text-sm text-text-secondary">
               Vos collaborateurs IA à temps plein.
             </p>
@@ -36,7 +36,7 @@ export function Footer() {
         </div>
 
         <div className="mt-10 flex flex-col items-start gap-3 border-t border-[rgba(0,229,255,0.08)] pt-6 text-xs text-text-muted md:flex-row md:items-center md:justify-between">
-          <span>© 2025 SynapseAI Workforce. Tous droits réservés.</span>
+          <span>© 2025 OperisAI. Tous droits réservés.</span>
         </div>
       </div>
     </footer>

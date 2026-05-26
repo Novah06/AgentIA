@@ -11,11 +11,8 @@ export default function SignUpPage() {
       <div className="glow-violet h-[400px] w-[400px] right-1/4 top-1/3" aria-hidden />
 
       <div className="relative z-10 flex flex-col items-center">
-        <Link href="/" className="mb-8 flex items-center gap-2.5">
-          <LogoMark size={48} />
-          <span className="font-display text-2xl font-bold text-text-primary">
-            Synapse<span className="text-accent">AI</span>
-          </span>
+        <Link href="/" className="mb-8">
+          <LogoMark size={52} />
         </Link>
 
         {hasClerk ? (

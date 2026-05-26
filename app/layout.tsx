@@ -18,12 +18,12 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'SynapseAI Workforce — Vos collaborateurs IA à temps plein',
+  title: 'OperisAI — Vos collaborateurs IA à temps plein',
   description:
-    "SynapseAI Workforce déploie des agents IA autonomes qui prennent en charge vos postes comptables, RH et administratifs — 24h/24, sans onboarding, pour 70% du coût d'un salarié.",
-  metadataBase: new URL('https://synapse-ai.fr'),
+    "OperisAI déploie des agents IA autonomes qui prennent en charge vos postes comptables, RH et administratifs — 24h/24, sans onboarding, pour 70% du coût d'un salarié.",
+  metadataBase: new URL('https://operis-ai.fr'),
   openGraph: {
-    title: 'SynapseAI Workforce',
+    title: 'OperisAI',
     description: 'Vos collaborateurs IA à temps plein dès demain.',
     type: 'website',
   },

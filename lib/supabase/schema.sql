@@ -1,4 +1,4 @@
--- SynapseAI Workforce — Supabase schema
+-- OperisAI — Supabase schema
 
 create extension if not exists "pgcrypto";
 

@@ -5,22 +5,22 @@ import { Logo } from '@/components/ui/Logo';
 const PAGES: Record<string, { title: string; intro: string; body: string[] }> = {
   mentions: {
     title: 'Mentions légales',
-    intro: 'Informations légales relatives à SynapseAI Workforce.',
+    intro: 'Informations légales relatives à OperisAI.',
     body: [
-      'Éditeur : SynapseAI Workforce SAS — RCS Paris.',
-      "Directeur de la publication : direction@synapse-ai.fr.",
+      'Éditeur : OperisAI SAS — RCS Paris.',
+      "Directeur de la publication : direction@operis-ai.fr.",
       'Hébergement : Vercel Inc., 340 S Lemon Ave #4133, Walnut, CA 91789, USA.',
-      "Pour toute demande, écrivez à contact@synapse-ai.fr.",
+      "Pour toute demande, écrivez à contact@operis-ai.fr.",
     ],
   },
   cgu: {
     title: "Conditions générales d'utilisation",
-    intro: "Règles d'utilisation de la plateforme SynapseAI Workforce.",
+    intro: "Règles d'utilisation de la plateforme OperisAI.",
     body: [
       "L'accès au service nécessite la création d'un compte et l'acceptation des présentes CGU.",
       'Les agents IA fournissent une assistance experte, mais leurs recommandations doivent être validées par un professionnel humain pour toute décision engageante.',
       "L'utilisateur est responsable de la confidentialité des données qu'il transmet aux agents.",
-      'SynapseAI Workforce se réserve le droit de suspendre tout compte en cas de manquement aux présentes.',
+      'OperisAI se réserve le droit de suspendre tout compte en cas de manquement aux présentes.',
     ],
   },
   privacy: {
@@ -30,7 +30,7 @@ const PAGES: Record<string, { title: string; intro: string; body: string[] }> = 
       'Nous collectons strictement les données nécessaires au fonctionnement du service : identité, email professionnel, contexte entreprise.',
       'Les conversations avec les agents sont stockées de manière chiffrée. Vous pouvez demander leur effacement à tout moment.',
       'Aucune donnée n\'est revendue ou utilisée à des fins publicitaires.',
-      'Conformément au RGPD, vous disposez d\'un droit d\'accès, de rectification et d\'effacement de vos données. Adressez votre demande à dpo@synapse-ai.fr.',
+      'Conformément au RGPD, vous disposez d\'un droit d\'accès, de rectification et d\'effacement de vos données. Adressez votre demande à dpo@operis-ai.fr.',
     ],
   },
 };

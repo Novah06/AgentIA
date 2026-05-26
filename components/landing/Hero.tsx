@@ -41,7 +41,7 @@ export function Hero() {
             className="mb-12 max-w-xl text-lg leading-[1.75] text-text-secondary"
             style={{ fontSize: 'clamp(15px, 2vw, 19px)' }}
           >
-            SynapseAI Workforce déploie des agents intelligents autonomes
+            OperisAI déploie des agents intelligents autonomes
             qui prennent en charge vos postes comptables, RH et administratifs —
             24h/24, sans onboarding, pour 70&nbsp;% du coût d'un salarié.
           </p>

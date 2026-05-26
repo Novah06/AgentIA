@@ -45,10 +45,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Email invalide' }, { status: 400 });
   }
 
-  const recipient = process.env.CONTACT_EMAIL || 'contact@synapse-ai.fr';
+  const recipient = process.env.CONTACT_EMAIL || 'contact@operis-ai.fr';
   const apiKey = process.env.RESEND_API_KEY;
 
-  const subject = `[SynapseAI] Nouvelle demande — ${body.company}`;
+  const subject = `[OperisAI] Nouvelle demande — ${body.company}`;
   const text = renderEmail(body);
 
   if (!apiKey) {
@@ -60,7 +60,7 @@ export async function POST(req: Request) {
   try {
     const resend = new Resend(apiKey);
     await resend.emails.send({
-      from: 'SynapseAI <noreply@synapse-ai.fr>',
+      from: 'OperisAI <noreply@operis-ai.fr>',
       to: recipient,
       replyTo: body.email,
       subject,
@@ -77,7 +77,7 @@ export async function POST(req: Request) {
 
 function renderEmail(p: ContactPayload): string {
   return [
-    'Nouvelle demande de contact — SynapseAI Workforce',
+    'Nouvelle demande de contact — OperisAI Workforce',
     '',
     `Nom : ${p.firstName} ${p.lastName}`,
     `Email : ${p.email}`,

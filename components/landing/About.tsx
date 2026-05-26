@@ -27,7 +27,7 @@ const STEPS = [
   {
     title: 'Activation de votre espace client',
     when: '',
-    body: "Vous recevez vos identifiants pour accéder à votre espace SynapseAI. Votre agent vous connaît déjà — il a été calibré sur votre entreprise pendant les 5 jours de configuration.",
+    body: "Vous recevez vos identifiants pour accéder à votre espace OperisAI. Votre agent vous connaît déjà — il a été calibré sur votre entreprise pendant les 5 jours de configuration.",
   },
   {
     title: 'Onboarding',
@@ -55,7 +55,7 @@ export function About() {
         <div className="mt-10 grid gap-10 lg:grid-cols-2">
           <Reveal delay={100}>
             <p className="text-lg leading-relaxed text-text-secondary">
-              SynapseAI Workforce ne vend pas un logiciel. Nous déployons des collaborateurs IA à
+              OperisAI ne vend pas un logiciel. Nous déployons des collaborateurs IA à
               temps plein — des experts autonomes qui prennent en charge des postes entiers dans
               votre entreprise. Chaque agent maîtrise son domaine à un niveau senior, travaille
               24h/24 sans interruption, et produit des livrables mesurables chaque semaine.

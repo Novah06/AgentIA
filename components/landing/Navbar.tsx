@@ -31,7 +31,7 @@ export function Navbar() {
       }`}
     >
       <div className="container-narrow flex h-16 items-center justify-between md:h-20">
-        <Logo />
+        <Logo variant="icon" size={38} />
 
         <nav className="hidden items-center gap-8 md:flex">
           {NAV_LINKS.map((l) => (

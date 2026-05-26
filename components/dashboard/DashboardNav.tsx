@@ -17,7 +17,7 @@ export function DashboardNav({ userName }: { userName?: string }) {
   return (
     <header className="sticky top-0 z-40 border-b border-[rgba(0,229,255,0.08)] bg-bg-base/80 backdrop-blur-xl">
       <div className="container-narrow flex h-16 items-center justify-between">
-        <Logo href="/dashboard" />
+        <Logo variant="icon" size={36} href="/dashboard" />
 
         <nav className="hidden items-center gap-1 md:flex">
           {LINKS.map((l) => (
