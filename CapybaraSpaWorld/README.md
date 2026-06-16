@@ -5,31 +5,37 @@ construction de spas générant du **CapyGold** passif, élevage génétique,
 décoration, économie complète (boutique, game passes, rebirth, 3 leaderboards).
 
 Tous les fichiers sont **100 % fonctionnels** (aucun placeholder). La syntaxe a été
-vérifiée avec `luac` pour les 28 scripts.
+vérifiée avec `luac` pour les 28 scripts. Le projet est **prêt pour Rojo** (sync
+en un clic dans Studio).
 
 ---
 
-## 📁 Arborescence (28 fichiers)
+## 📁 Arborescence (28 scripts — noms compatibles Rojo)
+
+> Convention Rojo : `.lua` → **ModuleScript**, `.server.lua` → **Script**,
+> `.client.lua` → **LocalScript**.
 
 ```
 CapybaraSpaWorld/
-├── ReplicatedStorage/Modules/      → ModuleScripts (partagés client+serveur)
-│   ├── GameConfig.lua              [1] Config centrale
-│   ├── CapybaraData.lua            [2] Objet capybara + hérédité
-│   ├── RemoteEvents.lua            [3] Tous les events réseau
-│   └── UIHelper.lua                [4] Fonctions UI partagées
+├── default.project.json            ← fichier projet Rojo
 │
-├── ServerScriptService/            → ModuleScripts SAUF GameManager
+├── ReplicatedStorage/Modules/      → ModuleScripts (partagés)
+│   ├── GameConfig.lua              [1]
+│   ├── CapybaraData.lua            [2]
+│   ├── RemoteEvents.lua            [3]
+│   └── UIHelper.lua                [4]
+│
+├── ServerScriptService/
 │   ├── GameManager.server.lua      [5]  ⚠️ SCRIPT (orchestrateur)
-│   ├── DataService.server.lua      [6]  ModuleScript
-│   ├── NatureZoneService.server.lua[7]  ModuleScript
-│   ├── CaptureService.server.lua   [8]  ModuleScript
-│   ├── SpaService.server.lua       [9]  ModuleScript
-│   ├── BreedingService.server.lua  [10] ModuleScript
-│   ├── ShopService.server.lua      [11] ModuleScript
-│   ├── DecorationService.server.lua[12] ModuleScript
-│   ├── RebirthService.server.lua   [13] ModuleScript
-│   └── LeaderboardService.server.lua[14] ModuleScript
+│   ├── DataService.lua             [6]  ModuleScript
+│   ├── NatureZoneService.lua       [7]  ModuleScript
+│   ├── CaptureService.lua          [8]  ModuleScript
+│   ├── SpaService.lua              [9]  ModuleScript
+│   ├── BreedingService.lua         [10] ModuleScript
+│   ├── ShopService.lua             [11] ModuleScript
+│   ├── DecorationService.lua       [12] ModuleScript
+│   ├── RebirthService.lua          [13] ModuleScript
+│   └── LeaderboardService.lua      [14] ModuleScript
 │
 ├── StarterPlayerScripts/           → LocalScripts
 │   ├── ClientManager.client.lua    [15]
@@ -39,63 +45,70 @@ CapybaraSpaWorld/
 │   └── InputHandler.client.lua     [19]
 │
 ├── StarterGui/                     → LocalScripts
-│   ├── HUD.lua                      [20]
-│   ├── EncounterUI.lua             [21]
-│   ├── SpaUI.lua                   [22]
-│   ├── BreedingUI.lua              [23]
-│   ├── ShopUI.lua                  [24]
-│   ├── LeaderboardUI.lua           [25]
-│   ├── RebirthUI.lua               [26]
-│   └── NotificationUI.lua          [27]
+│   ├── HUD.client.lua              [20]
+│   ├── EncounterUI.client.lua      [21]
+│   ├── SpaUI.client.lua            [22]
+│   ├── BreedingUI.client.lua       [23]
+│   ├── ShopUI.client.lua           [24]
+│   ├── LeaderboardUI.client.lua    [25]
+│   ├── RebirthUI.client.lua        [26]
+│   └── NotificationUI.client.lua   [27]
 │
 └── StarterPack/
-    └── CaptureTool.lua             [28] LocalScript (dans un Tool)
+    └── Filet Basique/              → Tool (init.meta.json)
+        ├── CaptureTool.client.lua  [28] LocalScript
+        ├── Handle.model.json       (Part)
+        └── ToolId.model.json       (StringValue = "net_basic")
 ```
 
 ---
 
-## 🚀 Installation dans Roblox Studio
+## 🚀 Installation avec Rojo (recommandé)
 
-### 1. Créer les ModuleScripts partagés
-Dans **ReplicatedStorage**, crée un dossier `Modules` puis 4 **ModuleScript** :
-`GameConfig`, `CapybaraData`, `RemoteEvents`, `UIHelper`.
-Copie le contenu des fichiers correspondants (sans l'extension `.lua`).
+### 1. Installer Rojo
+- **Plugin Studio** : Studio → onglet *Plugins* → *Manage Plugins* → installe **Rojo**
+  (ou via [rojo.space](https://rojo.space)).
+- **CLI** : `cargo install rojo` ou `aftman add rojo-rbx/rojo`, ou télécharge le binaire.
 
-> Les `RemoteEvents` sont créés automatiquement au premier `require` — pas besoin
-> de les ajouter à la main dans `ReplicatedStorage/Events`.
+### 2. Synchroniser
+```bash
+cd CapybaraSpaWorld
+rojo serve          # lance le serveur sur le port 34872
+```
+Dans Studio : ouvre le plugin **Rojo → Connect**. Les 28 scripts (+ le Tool, les
+folders) apparaissent instantanément aux bons endroits avec les **bons types
+d'instance**. Toute modification de fichier est resynchronisée en direct.
 
-### 2. Services serveur
-Dans **ServerScriptService** :
-- `GameManager` → **Script** (le nom doit rester `GameManager`).
-- Les 9 autres → **ModuleScript** avec les noms exacts :
-  `DataService`, `NatureZoneService`, `CaptureService`, `SpaService`,
-  `BreedingService`, `ShopService`, `DecorationService`, `RebirthService`,
-  `LeaderboardService`.
+> Alternative sans serveur live : `rojo build -o CapybaraSpaWorld.rbxlx` génère un
+> fichier `.rbxlx` que tu ouvres directement dans Studio (`File → Open`).
 
-> Dans Studio, le nom de l'instance n'a pas besoin du suffixe `.server`. Nomme
-> simplement l'objet `DataService`, etc. `GameManager` fait
-> `require(script.Parent.DataService)`.
-
-### 3. Scripts client
-- **StarterPlayer → StarterPlayerScripts** : 5 **LocalScript**
-  (`ClientManager`, `NatureZoneClient`, `SpaBuilderClient`, `BreedingClient`, `InputHandler`).
-- **StarterGui** : 8 **LocalScript**
-  (`HUD`, `EncounterUI`, `SpaUI`, `BreedingUI`, `ShopUI`, `LeaderboardUI`, `RebirthUI`, `NotificationUI`).
-
-### 4. Outil de capture
-Dans **StarterPack** :
-1. Crée un **Tool**, renomme-le `Filet Basique`.
-2. Ajoute-lui un **Part** nommé `Handle` (l'outil ne fonctionne pas sans Handle).
-3. Ajoute un **StringValue** nommé `ToolId` avec la valeur `net_basic`.
-4. Place le **LocalScript** `CaptureTool` dans le Tool.
-
-> Pour les outils supérieurs (filet argenté, etc.), duplique le Tool, change le
-> nom et la valeur de `ToolId` (`net_silver`, `net_gold`, `net_magic`, `lasso`).
-
-### 5. Activer les services Roblox
+### 3. Activer les services Roblox
 - **Game Settings → Security** : active **Enable Studio Access to API Services**
   (obligatoire pour les DataStores).
-- Le jeu doit être **publié** pour que les DataStores fonctionnent en test live.
+- **Publie** le jeu (File → Publish to Roblox) pour que les DataStores et
+  leaderboards fonctionnent.
+
+> Les `RemoteEvents` sont créés automatiquement au premier `require` du module
+> `RemoteEvents` — rien à ajouter à la main.
+>
+> Le **Tool** `Filet Basique` (avec son `Handle` et son `ToolId`) est généré
+> automatiquement par Rojo. Si ton client/version de Rojo ne gère pas les
+> `*.model.json`, crée le Tool manuellement : un **Tool** nommé `Filet Basique`
+> contenant un **Part** `Handle` + un **StringValue** `ToolId` = `net_basic`, puis
+> mets-y le LocalScript `CaptureTool`.
+
+### Outils supérieurs (optionnel)
+Duplique le dossier `Filet Basique`, renomme-le, et change la valeur de `ToolId`
+dans `ToolId.model.json` : `net_silver`, `net_gold`, `net_magic`, `lasso`.
+
+---
+
+## 🧩 Installation manuelle (sans Rojo)
+Si tu préfères copier-coller : crée chaque instance dans Studio avec le **nom sans
+suffixe** (`DataService.lua` → ModuleScript nommé `DataService`,
+`HUD.client.lua` → LocalScript nommé `HUD`, `GameManager.server.lua` → Script
+nommé `GameManager`) et colle le contenu. Respecte les emplacements de
+l'arborescence ci-dessus.
 
 ---
 

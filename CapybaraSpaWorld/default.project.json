@@ -1,0 +1,31 @@
+{
+  "name": "CapybaraSpaWorld",
+  "tree": {
+    "$className": "DataModel",
+
+    "ReplicatedStorage": {
+      "Modules": {
+        "$path": "ReplicatedStorage/Modules"
+      }
+    },
+
+    "ServerScriptService": {
+      "$path": "ServerScriptService"
+    },
+
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$path": "StarterPlayerScripts"
+      }
+    },
+
+    "StarterGui": {
+      "$path": "StarterGui"
+    },
+
+    "StarterPack": {
+      "$path": "StarterPack"
+    }
+  }
+}
