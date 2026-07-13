@@ -80,3 +80,25 @@ for i, (hid, fn) in enumerate(CONCEPTS.items()):
     sheet2.paste(im, ((i % 5) * 256, (i // 5) * 256))
 sheet2.save("tools/concepts_sheet.jpg", quality=85)
 print("concepts sheet ok")
+
+# --- modèles 3D des héros (GLB statiques, optimisés ensuite par gltf-transform) ---
+CDN3D = "https://d3u0tzju9qaucj.cloudfront.net/7d051b5a-7bfe-49fe-a484-24e7b3a9458a/"
+MODELS3D = {
+    "kaelis":     "88612907-8763-4323-9716-cbcfaf5d8ac0.glb",
+    "bramble":    "2e2b7184-8d64-458e-92b9-1832db0fab6d.glb",
+    "maelle":     "a6825718-d1c6-4127-87f3-96ec1a28b4e0.glb",
+    "sorren":     "052d02ee-4bb0-4b6e-9f06-cbf8cbf6b8cb.glb",
+    "grondin":    "7adf5e1f-f864-4cd6-ac72-d506aa06462c.glb",
+    "vesperine":  "38f4c1cc-10c7-408f-973f-7face6411f3d.glb",
+    "pipbogue":   "ecb806dd-5c2c-4b6f-9ae1-56864aa97d78.glb",
+    "sylvarende": "6fd2e3ec-d8a4-4adb-a411-b3fc3b22aea0.glb",
+    "theoline":   "a5383847-4896-4cd7-bed1-3b33db4c2a15.glb",
+    "nhyx":       "4ba4faad-f719-4295-9e13-ea64df8e8a57.glb",
+}
+os.makedirs("assets/models", exist_ok=True)
+for hid, fn in MODELS3D.items():
+    with urllib.request.urlopen(CDN3D + fn, timeout=120) as r:
+        data = r.read()
+    with open(f"assets/models/{hid}.glb", "wb") as f:
+        f.write(data)
+    print("model", hid, len(data) // 1024, "Ko")
