@@ -1,6 +1,6 @@
 // ASTRIA — Les Éclats du Ciel Brisé : client de jeu (solo, mobile-first).
 import { STR } from "./strings.js";
-import { HEROES, FACTIONS, RARITIES, CLASSES, BAL, heroById, chapterOf } from "./data.js";
+import { HEROES, FACTIONS, RARITIES, CLASSES, BAL, BIOMES, biomeOf, heroById, chapterOf } from "./data.js";
 
 /* ---------------------------------- utils --------------------------------- */
 
@@ -410,6 +410,8 @@ function summonResults(res) {
 
 const PORTRAITS = {};
 for (const h of HEROES) { const im = new Image(); im.src = `./assets/portraits/${h.id}.jpg`; PORTRAITS[h.id] = im; }
+const BIOME_BG = {};
+for (const b of BIOMES) { const im = new Image(); im.src = `./assets/biomes/${b}.jpg`; BIOME_BG[b] = im; }
 
 let B = null; // état du combat en cours
 
@@ -438,9 +440,11 @@ function startBattle(stageIdx) {
   B = {
     stageIdx, rng, allies, enemies, t: 0, over: false, victory: false,
     speed: 1, floaters: [], banner: null, scheduled: [], frozen: 0,
+    biome: biomeOf(chapterOf(stageIdx).ch), introT: 2300,
   };
   document.getElementById("battle").classList.add("open");
   resizeCanvas();
+  buildIntro();
   document.getElementById("bTitle").textContent =
     `${STR.campaign_chapter} ${chapterOf(stageIdx).ch + 1} — ${STR.campaign_stage} ${chapterOf(stageIdx).st + 1}`;
   document.getElementById("bResult").classList.remove("open");
@@ -612,7 +616,33 @@ function endBattle(victory, timeout = false) {
   const retry = document.getElementById("bRetry");
   if (retry) retry.onclick = () => startBattle(idx);
 }
-function closeBattle() { B = null; document.getElementById("battle").classList.remove("open"); }
+function closeBattle() {
+  B = null;
+  document.querySelectorAll(".bintro").forEach((e) => e.remove());
+  document.getElementById("battle").classList.remove("open");
+}
+
+// écran d'intro : arrivée sur le terrain du biome, alignements face à face
+function buildIntro() {
+  document.querySelectorAll(".bintro").forEach((e) => e.remove());
+  const { ch, st } = chapterOf(B.stageIdx);
+  const nFx = { sylve: 14, forge: 8, maree: 12, voile: 9, zenith: 0 }[B.biome] || 0;
+  let dots = "";
+  for (let i = 0; i < nFx; i++)
+    dots += `<i style="left:${(5 + Math.random() * 90).toFixed(1)}%;animation-delay:${(Math.random() * 0.9).toFixed(2)}s"></i>`;
+  const chips = (units, cls) => `<div class="ichips ${cls}">` +
+    units.map((u) => `<span><img src="./assets/portraits/${u.id}.jpg" alt=""></span>`).join("") + `</div>`;
+  const div = el("div", `bintro intro-${B.biome}`);
+  div.innerHTML = `
+    <img class="ibg" src="./assets/biomes/${B.biome}.jpg" alt="">
+    <div class="ishade"></div>
+    <div class="ifx">${dots}</div>
+    <div class="ititle">${STR.campaign_chapter} ${ch + 1} — ${chapterName(ch)} · ${st + 1}/10</div>
+    ${chips(B.enemies, "foe")}
+    <div class="ivs">${STR.intro_vs}</div>
+    ${chips(B.allies, "ally")}`;
+  document.getElementById("battle").appendChild(div);
+}
 
 /* --- rendu canvas du combat --- */
 
@@ -667,10 +697,18 @@ function drawUnit(u) {
 
 function renderBattle() {
   const W = canvas.clientWidth, H = canvas.clientHeight;
-  // fond procédural « Brume » (formule de style : ciel doré rongé de violet)
-  const g = ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, "#1a1033"); g.addColorStop(0.45, "#2a1a4d"); g.addColorStop(0.75, "#3d2a54"); g.addColorStop(1, "#593860");
-  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  const bg = BIOME_BG[B.biome];
+  if (bg && bg.complete && bg.naturalWidth) {
+    const s = Math.max(W / bg.naturalWidth, H / bg.naturalHeight);
+    const dw = bg.naturalWidth * s, dh = bg.naturalHeight * s;
+    ctx.drawImage(bg, (W - dw) / 2, (H - dh) / 2, dw, dh);
+    ctx.fillStyle = "rgba(11,10,31,0.45)"; ctx.fillRect(0, 0, W, H);
+  } else {
+    // repli procédural « Brume » (formule de style : ciel doré rongé de violet)
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, "#1a1033"); g.addColorStop(0.45, "#2a1a4d"); g.addColorStop(0.75, "#3d2a54"); g.addColorStop(1, "#593860");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  }
   const g2 = ctx.createRadialGradient(W / 2, H * 0.52, 10, W / 2, H * 0.52, W * 0.7);
   g2.addColorStop(0, "rgba(255,205,120,0.16)"); g2.addColorStop(1, "rgba(255,205,120,0)");
   ctx.fillStyle = g2; ctx.fillRect(0, 0, W, H);
@@ -714,7 +752,11 @@ function frame(now) {
   requestAnimationFrame(frame);
   if (paused) { last = now; return; }
   const real = Math.min(100, now - last); last = now;
-  if (B && !B.over) {
+  if (B && !B.over && B.introT > 0) {
+    B.introT -= real;
+    if (B.introT <= 0) document.querySelectorAll(".bintro").forEach((e) => e.remove());
+    acc = 0;
+  } else if (B && !B.over) {
     acc += real * B.speed;
     while (acc >= BAL.tick_ms) { battleTick(BAL.tick_ms); acc -= BAL.tick_ms; }
     for (const u of [...B.allies, ...B.enemies]) {

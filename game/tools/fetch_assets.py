@@ -14,10 +14,18 @@ JOBS = {
     "theoline":   "hf_20260713_083744_6bbf3d40-ccbc-4f41-aca3-993763e639f2.png",
     "nhyx":       "hf_20260713_083745_f6ebdfae-93dc-4c1e-a9a2-52b15ce29f6c.png",
 }
+BIOMES = {
+    "zenith": "hf_20260713_091702_d8a24023-1e03-45ec-b975-ac53fbbf5962.png",
+    "sylve":  "hf_20260713_091706_931c8f41-35d1-4502-9da9-14756de417a4.png",
+    "forge":  "hf_20260713_091709_11ba0def-6565-407e-bb7c-513d5fc0ee3f.png",
+    "maree":  "hf_20260713_091723_f8948063-cb6f-4657-93e1-9ffaad891886.png",
+    "voile":  "hf_20260713_091727_f44894db-61cf-45fd-ac40-6367ce576024.png",
+}
 KEYART = "hf_20260713_083746_eb2eed09-31ee-4266-82e4-521d2328eb8e.png"
 ICON   = "hf_20260713_083748_3adef38b-8f83-4506-b56a-6fcd69832b79.png"
 
 os.makedirs("assets/portraits", exist_ok=True)
+os.makedirs("assets/biomes", exist_ok=True)
 
 def get(name):
     with urllib.request.urlopen(CDN + name, timeout=60) as r:
@@ -27,6 +35,12 @@ for hid, fn in JOBS.items():
     im = get(fn).resize((512, 512), Image.LANCZOS)
     im.save(f"assets/portraits/{hid}.jpg", quality=82, optimize=True)
     print(hid, os.path.getsize(f"assets/portraits/{hid}.jpg") // 1024, "Ko")
+
+for bid, fn in BIOMES.items():
+    im = get(fn)
+    im = im.resize((720, round(im.height * 720 / im.width)), Image.LANCZOS)
+    im.save(f"assets/biomes/{bid}.jpg", quality=80, optimize=True)
+    print("biome", bid, os.path.getsize(f"assets/biomes/{bid}.jpg") // 1024, "Ko")
 
 ka = get(KEYART)
 ka = ka.resize((1024, round(ka.height * 1024 / ka.width)), Image.LANCZOS)

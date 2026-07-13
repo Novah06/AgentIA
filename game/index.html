@@ -148,6 +148,71 @@ h3{margin:4px 0 10px}
 .bres-box .lose{color:var(--dim);font-size:24px;margin:0 0 8px}
 .chapter-clear{color:var(--teal);font-weight:700}
 #dev{position:fixed;top:4px;left:4px;color:#0f0;font:12px monospace;display:none;z-index:99}
+/* ---- intro de combat (5 biomes) ---- */
+.bintro{position:absolute;inset:0;z-index:6;overflow:hidden;background:#0b0a1f;
+  display:flex;flex-direction:column;justify-content:center;align-items:center;gap:14px;
+  animation:introFade 2.3s forwards;pointer-events:none}
+@keyframes introFade{0%,78%{opacity:1}100%{opacity:0}}
+.bintro .ibg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  animation:ibgZoom 2.3s ease-out forwards}
+@keyframes ibgZoom{from{transform:scale(1.22);filter:brightness(.4)}to{transform:scale(1.04);filter:brightness(.75)}}
+.bintro .ishade{position:absolute;inset:0;background:linear-gradient(180deg,#0b0a1fb0,#0b0a1f30 30%,#0b0a1f30 70%,#0b0a1fb0)}
+.bintro .ititle{position:relative;font-weight:800;font-size:17px;text-shadow:0 2px 10px #000;
+  animation:idrop .5s .15s both}
+@keyframes idrop{from{transform:translateY(-26px);opacity:0}to{transform:none;opacity:1}}
+.ichips{position:relative;display:flex;gap:8px}
+.ichips img{width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid var(--gold);
+  box-shadow:0 4px 12px #000a;background:#223}
+.ichips.foe img{border-color:#7d5bb0;filter:saturate(.5) hue-rotate(250deg) brightness(.75)}
+.ichips.ally span{animation:islideL .5s both}
+.ichips.foe span{animation:islideR .5s both}
+.ichips span:nth-child(1){animation-delay:.25s}.ichips span:nth-child(2){animation-delay:.35s}
+.ichips span:nth-child(3){animation-delay:.45s}.ichips span:nth-child(4){animation-delay:.55s}
+.ichips span:nth-child(5){animation-delay:.65s}
+@keyframes islideL{from{transform:translateX(-70vw);opacity:0}to{transform:none;opacity:1}}
+@keyframes islideR{from{transform:translateX(70vw);opacity:0}to{transform:none;opacity:1}}
+.bintro .ivs{position:relative;font-size:38px;font-weight:900;color:var(--gold);
+  text-shadow:0 0 24px var(--gold),0 3px 6px #000;animation:ivsPop .45s .8s both}
+@keyframes ivsPop{0%{transform:scale(3);opacity:0}60%{transform:scale(.85)}100%{transform:scale(1);opacity:1}}
+.ifx{position:absolute;inset:0;pointer-events:none}
+.ifx i{position:absolute;display:block}
+/* Zénith : éclat solaire + rayons tournants */
+.intro-zenith .ifx::before{content:"";position:absolute;inset:-50%;
+  background:repeating-conic-gradient(from 0deg,#f2c14e2e 0 9deg,transparent 9deg 24deg);
+  animation:zRays 2.3s linear forwards}
+@keyframes zRays{from{transform:rotate(0);opacity:0}25%{opacity:1}to{transform:rotate(40deg);opacity:0}}
+.intro-zenith .ifx::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 42%,#ffe9a8cc,transparent 55%);
+  animation:zFlash 1s ease-out forwards}
+@keyframes zFlash{from{opacity:1}to{opacity:0}}
+/* Sylve : feuilles qui tombent */
+.intro-sylve .ifx i{width:12px;height:7px;border-radius:60% 40% 60% 40%;background:#7fce8a;opacity:.85;
+  top:-4%;animation:leafFall 2.1s ease-in forwards}
+@keyframes leafFall{from{transform:translateY(0) rotate(0)}to{transform:translateY(110vh) rotate(540deg);opacity:.2}}
+/* Forges : vapeur qui monte + lueur de lave */
+.intro-forge .ifx i{width:46px;height:46px;border-radius:50%;background:#f5efe8;filter:blur(12px);opacity:.5;
+  bottom:-8%;animation:steamUp 1.9s ease-out forwards}
+@keyframes steamUp{from{transform:translateY(0) scale(.6)}to{transform:translateY(-105vh) scale(1.8);opacity:0}}
+.intro-forge .ifx::after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,#ff7b2e55,transparent 40%);
+  animation:forgeGlow 2.3s ease-in-out forwards}
+@keyframes forgeGlow{0%,60%{opacity:1}100%{opacity:0}}
+/* Marées : vague qui balaie l'écran */
+.intro-maree .ifx::before{content:"";position:absolute;left:-10%;right:-10%;height:140%;bottom:-150%;
+  background:linear-gradient(0deg,#1f5f80,#4fb8d6cc 55%,#bfeaffdd 72%,transparent 78%);
+  border-radius:45% 55% 0 0/18% 22% 0 0;animation:waveSweep 1.5s ease-in-out forwards}
+@keyframes waveSweep{0%{transform:translateY(0)}45%{transform:translateY(-92%)}100%{transform:translateY(8%)}}
+.intro-maree .ifx i{width:9px;height:9px;border-radius:50%;background:#cfeffd;opacity:.8;bottom:-3%;
+  animation:bubbleUp 1.7s ease-out forwards}
+@keyframes bubbleUp{from{transform:translateY(0)}to{transform:translateY(-95vh);opacity:0}}
+/* Voile : rideaux de brume qui se déchirent + lanternes */
+.intro-voile .ifx::before,.intro-voile .ifx::after{content:"";position:absolute;top:-12%;bottom:-12%;width:68%;
+  background:#3a1f5e;filter:blur(34px);opacity:.96}
+.intro-voile .ifx::before{left:-9%;animation:mistL 1.7s .3s ease-in-out forwards}
+.intro-voile .ifx::after{right:-9%;animation:mistR 1.7s .3s ease-in-out forwards}
+@keyframes mistL{to{transform:translateX(-115%);opacity:.25}}
+@keyframes mistR{to{transform:translateX(115%);opacity:.25}}
+.intro-voile .ifx i{width:8px;height:12px;border-radius:40%;background:#d9b8ff;box-shadow:0 0 12px 4px #a06fd880;
+  bottom:6%;animation:lanternUp 2.2s ease-out forwards}
+@keyframes lanternUp{from{transform:translateY(0)}to{transform:translateY(-55vh);opacity:0}}
 </style>
 </head>
 <body>

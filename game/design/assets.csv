@@ -10,6 +10,11 @@ portrait_sylvarende,hero card art + battle unit portrait for Sylvarende (Verdain
 portrait_theoline,hero card art + battle unit portrait for Théoline (Solacia Arc Éveillé),static 2D portrait,young academy archer prodigy,1:1,STYLE FORMULA v1,generate
 portrait_nhyx,hero card art + battle unit portrait for Nhyx (Lucens Ombre Mythique),static 2D portrait,starlit glass-bodied spirit,1:1,STYLE FORMULA v1,generate
 bg_hub_sky,hub + menu backdrop (floating islands golden sky),procedural CSS/SVG background,layered gradient sky with island silhouettes per formula palette,9:16 fluid,STYLE FORMULA v1,procedural
-bg_battle_mist,battle backdrop (Brume-corrupted sky variant),procedural CSS/SVG background,darker violet-mist gradient variant per formula palette,9:16 fluid,STYLE FORMULA v1,procedural
+bg_battle_mist,repli procédural du fond de combat (si image non chargée),procedural canvas background,darker violet-mist gradient variant per formula palette,9:16 fluid,STYLE FORMULA v1,procedural
+biome_zenith,décor de combat + intro chapitre 1/6/11… (Zénith Doré),static 2D background,golden citadel terrace sky islands arena,9:16,STYLE FORMULA v1,generate
+biome_sylve,décor de combat + intro chapitre 2/7/12… (Sylve Suspendue),static 2D background,forest island hanging roots arena,9:16,STYLE FORMULA v1,generate
+biome_forge,décor de combat + intro chapitre 3/8/13… (Forges d'Écume),static 2D background,volcanic geyser copper machines arena,9:16,STYLE FORMULA v1,generate
+biome_maree,décor de combat + intro chapitre 4/9/14… (Archipel des Marées),static 2D background,seashell island waterfalls nacre arena,9:16,STYLE FORMULA v1,generate
+biome_voile,décor de combat + intro chapitre 5/10/15… (Voile Ombral),static 2D background,violet crystals soul lanterns arena,9:16,STYLE FORMULA v1,generate
 store_thumbnail,deploy catalog cover + OG image + bandeau d'accueil in-game (assets/keyart.jpg),marketing image,floating islands shattered star key art,16:9,STYLE FORMULA v1,generate
 store_favicon,deploy favicon + catalog icon,ui icon,golden compass star emblem,1:1,STYLE FORMULA v1,generate

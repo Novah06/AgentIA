@@ -129,6 +129,10 @@ export const BAL = {
   ],
 };
 
+// biomes de combat : 1 par région du GDD, cyclés au-delà du chapitre 5
+export const BIOMES = ["zenith", "sylve", "forge", "maree", "voile"];
+export function biomeOf(ch) { return BIOMES[ch % BIOMES.length]; }
+
 export function heroById(id) { return HEROES.find((h) => h.id === id); }
 
 export function chapterOf(idx, stagesPerChapter = BAL.stages_per_chapter) {

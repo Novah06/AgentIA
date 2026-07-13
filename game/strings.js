@@ -66,6 +66,9 @@ export const STR = {
   campaign_cleared: "Île reconquise !",
   campaign_locked: "Terminez le niveau précédent",
 
+  intro_vs: "VS",
+  intro_ready: "En position !",
+
   battle_victory: "VICTOIRE !",
   battle_defeat: "Défaite…",
   battle_defeat_tip: "Améliorez vos héros, ajustez l'équipe ou réclamez votre butin AFK avant de retenter.",
