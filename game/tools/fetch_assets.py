@@ -121,7 +121,7 @@ CREATURE_CONCEPTS = {
     "brume_meduse":        "hf_20260713_141941_b1cee78b-7d65-4641-b77d-f4100547011a.png",
     "brume_aragne":        "hf_20260713_141945_dadec356-eb29-4c23-9ef7-bfd87a0cd04a.png",
     "brume_sanglier":      "hf_20260713_141948_2607a95f-b297-4fd0-abe7-30849ba3fd26.png",
-    "devoreur_leviathan":  "hf_20260713_141951_b13b7a7e-92e0-4c04-8fe6-6b4277a77706.png",
+    "devoreur_leviathan":  "hf_20260713_142538_32897415-0f31-4acf-ae43-c41ae9001625.png",
     "devoreur_tisseuse":   "hf_20260713_141954_0fb99301-78a0-4317-9b9a-9c6cfb26fceb.png",
     "devoreur_avale":      "hf_20260713_141959_17852915-2b5b-420d-83f9-36ba2011e67c.png",
 }
