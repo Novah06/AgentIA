@@ -500,8 +500,8 @@ function build3DScene() {
   const scene = new T.Scene();
   scene.fog = new T.Fog(0x241a4e, 15, 34);
   const camera = new T.PerspectiveCamera(52, 1, 0.1, 100);
-  camera.position.set(0, 6.2, 12.4);
-  camera.lookAt(0, 0.8, -2.4);
+  camera.position.set(0, 6.8, 12.6);
+  camera.lookAt(0, 0.5, -2.6);
   scene.add(new T.HemisphereLight(0xfff6e0, 0x4a3a68, 1.9));
   const dir = new T.DirectionalLight(0xffe8c0, 2.1);
   dir.position.set(3, 7, 4);
@@ -526,7 +526,7 @@ function addUnit3D(u) {
   const tpl = MODELS[u.id];
   if (!tpl || !B.t3) return;
   const obj = tpl.clone(true);
-  const h = (HERO_H[u.id] || 1.55) * (u.boss ? 1.15 : 1) * (u.elite ? 1.3 : 1);
+  const h = (HERO_H[u.id] || 1.55) * (u.boss ? 1.15 : 1) * (u.elite ? 1.3 : 1) * (u.side === "enemy" ? 1.22 : 1);
   obj.scale.setScalar(h);
   u.h3 = h;
   obj.rotation.y = u.side === "ally" ? Math.PI : 0;
@@ -727,6 +727,7 @@ function startBattle(stageIdx) {
 }
 
 function spawnWave(i) {
+  if (devMode) window.__B = B;
   B.waveIdx = i;
   B.waveStart = B.t;
   if (B.t3) for (const u of B.enemies) if (u.obj) B.t3.scene.remove(u.obj);
@@ -760,8 +761,9 @@ function layoutUnits() {
   const place3d = (units, sideSign) => {
     const front = units.filter((u) => CLASSES[u.hero.cls].row === "front");
     const back = units.filter((u) => CLASSES[u.hero.cls].row === "back");
-    for (const [row, dz] of [[front, 2.3], [back, 4.0]]) row.forEach((u, i) => {
-      u.px = (i - (row.length - 1) / 2) * 2.05;
+    // quinconce : la ligne arrière est décalée d'un demi-cran pour rester lisible en profondeur
+    for (const [row, dz, off] of [[front, 2.3, 0], [back, 4.6, 1.05]]) row.forEach((u, i) => {
+      u.px = (i - (row.length - 1) / 2) * 2.05 + off;
       u.pz = sideSign * dz;
     });
   };
