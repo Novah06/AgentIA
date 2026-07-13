@@ -17,6 +17,8 @@ JOBS = {
 KEYART = "hf_20260713_083746_eb2eed09-31ee-4266-82e4-521d2328eb8e.png"
 ICON   = "hf_20260713_083748_3adef38b-8f83-4506-b56a-6fcd69832b79.png"
 
+os.makedirs("assets/portraits", exist_ok=True)
+
 def get(name):
     with urllib.request.urlopen(CDN + name, timeout=60) as r:
         return Image.open(io.BytesIO(r.read())).convert("RGB")
