@@ -473,7 +473,7 @@ function tintEcho(obj) {
     if (o.isMesh && o.material) {
       o.material = o.material.clone();
       o.material.userData.cloned = true;
-      if (o.material.color) o.material.color.multiply(new T.Color(0.5, 0.36, 0.9));
+      if (o.material.color) o.material.color.multiply(new T.Color(0.62, 0.5, 1.05));
       if (o.material.emissive) o.material.emissive.set(0x1c0836);
     }
   });
@@ -483,12 +483,15 @@ function build3DScene() {
   const scene = new T.Scene();
   scene.fog = new T.Fog(0x241a4e, 15, 34);
   const camera = new T.PerspectiveCamera(52, 1, 0.1, 100);
-  camera.position.set(0, 5.8, 11.2);
-  camera.lookAt(0, 0.7, -2.6);
-  scene.add(new T.HemisphereLight(0xfff2d8, 0x3a2a55, 1.15));
-  const dir = new T.DirectionalLight(0xffe0b0, 1.3);
+  camera.position.set(0, 6.2, 12.4);
+  camera.lookAt(0, 0.8, -2.4);
+  scene.add(new T.HemisphereLight(0xfff6e0, 0x4a3a68, 1.9));
+  const dir = new T.DirectionalLight(0xffe8c0, 2.1);
   dir.position.set(3, 7, 4);
   scene.add(dir);
+  const fill = new T.DirectionalLight(0xcfe4ff, 0.9);
+  fill.position.set(-4, 3, 8);
+  scene.add(fill);
   const mat = new T.MeshBasicMaterial({ color: 0xbdb3cf, map: biomeTexture(B.biome) });
   const backdrop = new T.Mesh(new T.PlaneGeometry(38, 64), mat);
   backdrop.position.set(0, 8, -16);
@@ -512,8 +515,11 @@ function build3DScene() {
   resizeCanvas();
 }
 
+let fxLastNow = 0;
 function update3D(W, H) {
   const now = performance.now();
+  const dt = fxLastNow ? Math.min(100, now - fxLastNow) : 16;
+  fxLastNow = now;
   for (const u of [...B.allies, ...B.enemies]) {
     const o = u.obj;
     if (!o) continue;
@@ -524,17 +530,123 @@ function update3D(W, H) {
       o.position.y = -0.3 * p;
       o.visible = now - u.deathT < 1400;
     } else {
-      const lunge = u.lungeT > 0 ? Math.sin((u.lungeT / 240) * Math.PI) * 1.1 : 0;
+      const melee = CLASSES[u.hero.cls].row === "front";
+      const lp = u.lungeT > 0 ? Math.sin((u.lungeT / 240) * Math.PI) : 0;
       const dirZ = u.side === "ally" ? -1 : 1;
-      o.position.set(
-        u.px + (u.hitT > 0 ? (Math.random() - 0.5) * 0.08 : 0),
-        Math.sin(now / 480 + u.px * 2) * 0.04,
-        u.pz + dirZ * lunge);
-      o.rotation.x = 0;
+      let px = u.px, pz = u.pz + dirZ * lp * (melee ? 1.9 : 0.7);
+      const py = Math.sin(now / 480 + u.px * 2) * 0.04;
+      if (u.fxDash) {
+        const q = Math.min(1, u.fxDash.t / 620);
+        const k = Math.sin(q * Math.PI);
+        px += (u.fxDash.x - px) * k;
+        pz += (u.fxDash.z + dirZ * 1.1 - pz) * k;
+        u.fxDash.t += dt;
+        if (q >= 1) u.fxDash = null;
+      }
+      if (u.hitT > 0) px += (Math.random() - 0.5) * 0.08;
+      o.position.set(px, py, pz);
+      o.rotation.x = -0.3 * lp * (melee ? 1 : 0.4);
+      let sc = u.h3;
+      if (B.banner && B.banner.unit === u) sc *= 1 + 0.16 * Math.sin((1 - B.banner.t / 900) * Math.PI);
+      o.scale.setScalar(sc);
     }
     const v = new T.Vector3(o.position.x, u.h3 + 0.35, o.position.z).project(B.t3.camera);
     u.x = (v.x * 0.5 + 0.5) * W;
     u.y = (-v.y * 0.5 + 0.5) * H;
+  }
+  fxUpdate(dt);
+}
+
+/* --- effets de combat : projectiles, éclats de particules, ondes au sol, flash --- */
+const FXGEO = {};
+function fxGeo() {
+  if (!FXGEO.sphere) {
+    FXGEO.sphere = new T.SphereGeometry(0.09, 8, 8);
+    FXGEO.ring = new T.RingGeometry(0.28, 0.38, 32);
+  }
+}
+function fxMat(hex, opacity = 0.95) {
+  return new T.MeshBasicMaterial({ color: new T.Color(hex), transparent: true, opacity,
+    blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide });
+}
+function unitPos(u, hFrac = 0.6) {
+  return { x: u.obj ? u.obj.position.x : u.px || 0, y: (u.h3 || 1.5) * hFrac, z: u.obj ? u.obj.position.z : u.pz || 0 };
+}
+function fxOn() { return B && B.use3D && B.t3 && T; }
+function fxProjectile(fromU, toU, hex, opts = {}) {
+  if (!fxOn() || !fromU.obj || !toU.obj || B.fxList.length > 70) return;
+  fxGeo();
+  const a = unitPos(fromU, 0.7), b = unitPos(toU, 0.55);
+  const m = new T.Mesh(FXGEO.sphere, fxMat(hex));
+  m.scale.setScalar(opts.size || 1.5);
+  m.position.set(a.x, a.y, a.z);
+  B.t3.scene.add(m);
+  B.fxList.push({ kind: "proj", m, t: 0, dur: opts.dur || 190, a, b, hex, burst: opts.burst !== false });
+}
+function fxBurstAt(c, hex, n = 6) {
+  if (!fxOn() || B.fxList.length > 80) return;
+  fxGeo();
+  for (let i = 0; i < n; i++) {
+    const m = new T.Mesh(FXGEO.sphere, fxMat(hex, 0.9));
+    m.scale.setScalar(0.7 + Math.random() * 0.7);
+    m.position.set(c.x, c.y, c.z);
+    const th = Math.random() * Math.PI * 2, ph = Math.random() * Math.PI;
+    B.t3.scene.add(m);
+    B.fxList.push({ kind: "part", m, t: 0, dur: 430, x: c.x, y: c.y, z: c.z,
+      vx: Math.sin(ph) * Math.cos(th) * 2.6, vy: Math.abs(Math.cos(ph)) * 2.4, vz: Math.sin(ph) * Math.sin(th) * 2.6 });
+  }
+}
+function fxBurst(u, hex, n = 6, hFrac = 0.5) { if (fxOn()) fxBurstAt(unitPos(u, hFrac), hex, n); }
+function fxRing(u, hex, max = 2.4, dur = 550) {
+  if (!fxOn()) return;
+  fxGeo();
+  const m = new T.Mesh(FXGEO.ring, fxMat(hex, 0.85));
+  m.rotation.x = -Math.PI / 2;
+  const c = unitPos(u, 0);
+  m.position.set(c.x, 0.06, c.z);
+  B.t3.scene.add(m);
+  B.fxList.push({ kind: "ring", m, t: 0, dur, max });
+}
+function fxFlash(color) { if (B) B.flash = { color, t: 420, dur: 420 }; }
+function fxUpdate(dt) {
+  if (!B || !B.fxList) return;
+  for (const f of B.fxList) {
+    f.t += dt;
+    const p = Math.min(1, f.t / f.dur);
+    if (f.kind === "proj") {
+      f.m.position.set(f.a.x + (f.b.x - f.a.x) * p,
+        f.a.y + (f.b.y - f.a.y) * p + Math.sin(p * Math.PI) * 0.8,
+        f.a.z + (f.b.z - f.a.z) * p);
+    } else if (f.kind === "part") {
+      f.m.position.set(f.x + f.vx * p * 0.4, f.y + f.vy * p * 0.4 - 0.5 * p * p, f.z + f.vz * p * 0.4);
+      f.m.material.opacity = 0.9 * (1 - p);
+    } else if (f.kind === "ring") {
+      f.m.scale.setScalar(1 + f.max * p);
+      f.m.material.opacity = 0.85 * (1 - p);
+    }
+    if (p >= 1) {
+      B.t3.scene.remove(f.m);
+      f.m.material.dispose();
+      f.done = true;
+      if (f.kind === "proj" && f.burst) fxBurstAt(f.b, f.hex, 5);
+    }
+  }
+  B.fxList = B.fxList.filter((f) => !f.done);
+}
+
+// effets d'ultime par type de capacité
+function fxUlt(u, k, foes, mates) {
+  if (!fxOn()) return;
+  switch (k.kind) {
+    case "aoe_blind": fxFlash("#ffd76a"); for (const e of alive(foes)) fxBurst(e, "#f5b942", 7); fxRing(u, "#f5b942", 8); break;
+    case "shield": for (const a of alive(mates)) { fxRing(a, "#9ecbff", 2.2); fxBurst(a, "#9ecbff", 5); } break;
+    case "heal_sleep": for (const a of alive(mates)) fxBurst(a, "#7fe58a", 8); fxRing(u, "#4fb8d6", 7); break;
+    case "execute": { const t = alive(foes).reduce((a, b) => (a.hp < b.hp ? a : b), alive(foes)[0]);
+      if (t && u.obj && t.obj) { u.fxDash = { x: t.obj.position.x, z: t.obj.position.z, t: 0 }; fxBurst(t, "#7ad6ff", 10); } break; }
+    case "turret": fxBurst(u, "#e0813f", 8); break;
+    case "haste": for (const a of alive(mates)) fxBurst(a, "#ffb066", 7); break;
+    case "aoe_stun": for (const e of alive(foes)) fxRing(e, "#6fce7f", 2.0); fxBurst(u, "#6fce7f", 8); break;
+    case "timestop": fxFlash("#8fd8ff"); for (const e of alive(foes)) fxBurst(e, "#cfe9ff", 8); break;
   }
 }
 
@@ -580,6 +692,7 @@ function startBattle(stageIdx) {
     stageIdx, rng, allies, enemies, t: 0, over: false, victory: false,
     speed: 1, floaters: [], banner: null, scheduled: [], frozen: 0,
     biome: biomeOf(chapterOf(stageIdx).ch), introT: 2300,
+    fxList: [], flash: null,
   };
   document.getElementById("battle").classList.add("open");
   resizeCanvas();
@@ -611,8 +724,8 @@ function layoutUnits() {
   const place3d = (units, sideSign) => {
     const front = units.filter((u) => CLASSES[u.hero.cls].row === "front");
     const back = units.filter((u) => CLASSES[u.hero.cls].row === "back");
-    for (const [row, dz] of [[front, 2.1], [back, 3.6]]) row.forEach((u, i) => {
-      u.px = (i - (row.length - 1) / 2) * 1.6;
+    for (const [row, dz] of [[front, 2.3], [back, 4.0]]) row.forEach((u, i) => {
+      u.px = (i - (row.length - 1) / 2) * 2.05;
       u.pz = sideSign * dz;
     });
   };
@@ -663,6 +776,7 @@ function pickTarget(att, foes) {
 function castUltimate(u, foes, mates) {
   const k = u.hero.ult, pct = k.pct;
   B.banner = { unit: u, t: 900 };
+  fxUlt(u, k, foes, mates);
   switch (k.kind) {
     case "aoe_blind":
       for (const e of alive(foes)) { dealDamage(u, e, pct); e.blindUntil = B.t + k.dur; } break;
@@ -679,12 +793,14 @@ function castUltimate(u, foes, mates) {
     }
     case "turret":
       for (let i = 1; i <= k.hits; i++)
-        B.scheduled.push({ at: B.t + (k.dur / k.hits) * i, fn: () => { const t = pickTarget(u, foes); if (t) dealDamage(u, t, pct); } });
+        B.scheduled.push({ at: B.t + (k.dur / k.hits) * i, fn: () => {
+          const t = pickTarget(u, foes);
+          if (t) { dealDamage(u, t, pct); fxProjectile(u, t, "#e0813f"); } } });
       break;
     case "lanterns":
       for (let i = 0; i < k.hits; i++) {
         const t = alive(foes)[Math.floor(B.rng() * Math.max(1, alive(foes).length))];
-        if (t) { const d = dealDamage(u, t, pct);
+        if (t) { fxProjectile(u, t, "#a06fd8", { dur: 260 }); const d = dealDamage(u, t, pct);
           const low = alive(mates).reduce((a, b) => (a.hp / a.maxHp < b.hp / b.maxHp ? a : b), alive(mates)[0]);
           if (low) heal(low, d * 0.5); } }
       break;
@@ -693,7 +809,8 @@ function castUltimate(u, foes, mates) {
     case "aoe_stun":
       for (const e of alive(foes)) { dealDamage(u, e, pct); if (CLASSES[e.hero.cls].row === "front") e.stunUntil = B.t + k.dur; } break;
     case "volley":
-      for (let i = 0; i < k.hits; i++) { const t = pickTarget(u, foes); if (t) dealDamage(u, t, pct); }
+      for (let i = 0; i < k.hits; i++) { const t = pickTarget(u, foes);
+        if (t) { dealDamage(u, t, pct); fxProjectile(u, t, "#f2c14e", { dur: 150, size: 1.0, burst: false }); } }
       for (const a of alive(mates)) a.energy = Math.min(BAL.energy_max, a.energy + k.energy);
       break;
     case "timestop":
@@ -709,11 +826,13 @@ function unitAct(u) {
   // Aube : soigne si un allié est sous 65 %
   if (CLASSES[u.hero.cls].target === "smart") {
     const low = alive(mates).reduce((a, b) => (a.hp / a.maxHp < b.hp / b.maxHp ? a : b), alive(mates)[0]);
-    if (low && low.hp / low.maxHp < 0.65) { heal(low, u.atk * 1.1); u.energy = Math.min(BAL.energy_max, u.energy + BAL.energy_per_attack); u.lungeT = 240; return; }
+    if (low && low.hp / low.maxHp < 0.65) { heal(low, u.atk * 1.1); fxBurst(low, "#7fe58a", 7); u.energy = Math.min(BAL.energy_max, u.energy + BAL.energy_per_attack); u.lungeT = 240; return; }
   }
   const t = pickTarget(u, foes);
   if (!t) return;
   dealDamage(u, t, 1.0);
+  if (CLASSES[u.hero.cls].row === "back") fxProjectile(u, t, FACTIONS[u.hero.faction].color);
+  else fxBurst(t, FACTIONS[u.hero.faction].color, 5);
   if (CLASSES[u.hero.cls].target === "splash") {
     const others = alive(foes).filter((x) => x !== t);
     if (others.length) dealDamage(u, others[Math.floor(B.rng() * others.length)], 0.3);
@@ -769,6 +888,7 @@ function endBattle(victory, timeout = false) {
   if (retry) retry.onclick = () => startBattle(idx);
 }
 function closeBattle() {
+  if (B && B.fxList && B.t3) for (const f of B.fxList) { B.t3.scene.remove(f.m); f.m.material.dispose(); }
   if (B && B.t3) B.t3.scene.traverse((o) => {
     if (o.isMesh && o.material && o.material.userData.cloned) o.material.dispose();
   });
@@ -874,6 +994,13 @@ function drawOverlays(W, H) {
     ctx.fillStyle = `rgba(255,215,140,${a})`;
     ctx.fillText("✦ " + B.banner.unit.hero.ultName + " ✦", W / 2, H * 0.44 + 29);
   }
+  // flash plein écran (ultimes majeurs)
+  if (B.flash) {
+    ctx.globalAlpha = Math.max(0, B.flash.t / B.flash.dur) * 0.5;
+    ctx.fillStyle = B.flash.color;
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalAlpha = 1;
+  }
   // chronomètre
   ctx.font = "12px sans-serif"; ctx.textAlign = "right"; ctx.fillStyle = "rgba(255,255,255,0.6)";
   ctx.fillText(Math.max(0, Math.ceil((BAL.battle_timeout_ms - B.t) / 1000)) + "s", W - 10, 16);
@@ -938,6 +1065,7 @@ function frame(now) {
     for (const f of B.floaters) f.age += real;
     B.floaters = B.floaters.filter((f) => f.age < 900);
     if (B.banner) { B.banner.t -= real; if (B.banner.t <= 0) B.banner = null; }
+    if (B.flash) { B.flash.t -= real; if (B.flash.t <= 0) B.flash = null; }
   }
   if (B) renderBattle();
   if (devMode) {
