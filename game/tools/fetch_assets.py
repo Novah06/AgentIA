@@ -68,9 +68,9 @@ CONCEPTS = {
     "grondin":    "hf_20260713_093059_60e0efe6-1930-4ef8-a352-a6ac2489df86.png",
     "vesperine":  "hf_20260713_093101_8fc00534-cd0c-4359-b269-be0c154b95dc.png",
     "pipbogue":   "hf_20260713_093104_96b441b0-11d8-47ad-a4aa-4c4f2ba83dd6.png",
-    "sylvarende": "hf_20260713_093112_f89aa85a-95bb-4643-9e24-ff1092a7435e.png",
-    "theoline":   "hf_20260713_093113_b5f95564-fae9-49f4-aa7f-d752157510dc.png",
-    "nhyx":       "hf_20260713_093114_bc15a591-5231-4def-8346-9bb9ea2ca7d1.png",
+    "sylvarende": "hf_20260713_132456_9af790a0-88cb-48ad-a2b1-489faee782ca.png",
+    "theoline":   "hf_20260713_132459_e6914cd0-31c2-4be5-add0-01b612d2846f.png",
+    "nhyx":       "hf_20260713_132502_5ea2bdb4-2a18-4932-8686-0de9921a474d.png",
 }
 os.makedirs("tools/concepts", exist_ok=True)
 sheet2 = Image.new("RGB", (5 * 256, 2 * 256), (255, 255, 255))

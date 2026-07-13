@@ -25,6 +25,16 @@ jobs:
           pip3 install --quiet pillow
           cd game && python3 tools/fetch_assets.py
 
+      - name: Optimiser les modèles 3D pour le mobile
+        run: |
+          if ls game/assets/models/*.glb >/dev/null 2>&1; then
+            for f in game/assets/models/*.glb; do
+              npx --yes @gltf-transform/cli optimize "$f" "$f" \
+                --compress false --texture-compress false --texture-size 512 --simplify false || true
+              ls -la "$f"
+            done
+          fi
+
       - name: Construire le zip du jeu (logic.js + index.html à la racine)
         run: |
           cd game && zip -r ../astria-game.zip . -x "tools/*"
