@@ -67,6 +67,8 @@ export const STR = {
   campaign_locked: "Terminez le niveau précédent",
 
   intro_vs: "VS",
+  wave: "Vague",
+  chef: "Chef",
   intro_ready: "En position !",
 
   battle_victory: "VICTOIRE !",

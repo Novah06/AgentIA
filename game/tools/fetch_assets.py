@@ -112,3 +112,28 @@ for hid, fn in MODELS3D.items():
     with open(f"assets/models/{hid}.glb", "wb") as f:
         f.write(data)
     print("model", hid, len(data) // 1024, "Ko")
+
+# --- créatures de la Brume : références 3D → portraits en jeu + planche QC ---
+CREATURE_CONCEPTS = {
+    "brume_loup":          "hf_20260713_141931_3e821622-7b4c-4b41-95fa-3564cea8f6df.png",
+    "brume_golem":         "hf_20260713_141934_12fed5d4-24f2-4a80-b0c1-ad50b1b8f232.png",
+    "brume_corbeau":       "hf_20260713_141937_3c6dd412-139c-42ac-8f73-ec57c37462d6.png",
+    "brume_meduse":        "hf_20260713_141941_b1cee78b-7d65-4641-b77d-f4100547011a.png",
+    "brume_aragne":        "hf_20260713_141945_dadec356-eb29-4c23-9ef7-bfd87a0cd04a.png",
+    "brume_sanglier":      "hf_20260713_141948_2607a95f-b297-4fd0-abe7-30849ba3fd26.png",
+    "devoreur_leviathan":  "hf_20260713_141951_b13b7a7e-92e0-4c04-8fe6-6b4277a77706.png",
+    "devoreur_tisseuse":   "hf_20260713_141954_0fb99301-78a0-4317-9b9a-9c6cfb26fceb.png",
+    "devoreur_avale":      "hf_20260713_141959_17852915-2b5b-420d-83f9-36ba2011e67c.png",
+}
+sheet3 = Image.new("RGB", (5 * 256, 2 * 256), (255, 255, 255))
+for i, (cid, fn) in enumerate(CREATURE_CONCEPTS.items()):
+    p = f"assets/portraits/{cid}.jpg"
+    if os.path.exists(p):
+        im = Image.open(p)
+    else:
+        im = get(fn).resize((512, 512), Image.LANCZOS)
+        im.save(p, quality=82, optimize=True)
+        print("créature", cid, os.path.getsize(p) // 1024, "Ko")
+    sheet3.paste(im.resize((256, 256)), ((i % 5) * 256, (i // 5) * 256))
+sheet3.save("tools/creatures_sheet.jpg", quality=85)
+print("creatures sheet ok")

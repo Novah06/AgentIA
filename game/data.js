@@ -7,6 +7,7 @@ export const FACTIONS = {
   nerisse: { color: "#4fb8d6", counter: "solacia" },
   nyxara: { color: "#a06fd8", counter: "lucens" },
   lucens: { color: "#efe9ff", counter: "nyxara" },
+  brume: { color: "#8a5fd0", counter: "" },
 };
 
 export const RARITIES = {
@@ -99,6 +100,9 @@ export const BAL = {
   enemy_base_mult: 0.7,
   enemy_growth: 1.055,                                        // par niveau global
   boss_mult: 1.35,
+  elite_mult: 1.6,                                            // Chefs : stats ×1,6
+  wave_mults: [0.5, 0.62],                                    // multiplicateur par vague (niveau normal)
+  wave_mults_boss: [0.45, 0.55, 0.5],                         // niveau de boss (3e vague : le Dévoreur)
   reward_gold: (idx) => 240 + 90 * idx,
   reward_gold_replay: (idx) => 60 + 15 * idx,
   reward_diamonds_first: 50,
@@ -128,6 +132,39 @@ export const BAL = {
     { scrolls: 2 }, { diamonds: 200 }, { diamonds: 300, scrolls: 3 },
   ],
 };
+
+// Bestiaire de la Brume : créatures (vagues), Chefs (élites de 2e vague) et Dévoreurs (boss)
+export const CREATURES = [
+  { id: "brume_loup", name: "Loup Brumé", faction: "verdaine", cls: "warrior", tier: "mob",
+    base: { hp: 800, atk: 55, def: 26, spd: 106 },
+    ult: { kind: "execute", pct: 3.0 }, ultName: "Morsure de Brume" },
+  { id: "brume_golem", name: "Golem de Suie", faction: "karvok", cls: "tank", tier: "mob",
+    base: { hp: 1400, atk: 40, def: 48, spd: 78 },
+    ult: { kind: "shield", pct: 0.35, dur: 5000 }, ultName: "Carapace de Cendre" },
+  { id: "brume_corbeau", name: "Corbeau du Voile", faction: "nyxara", cls: "archer", tier: "mob",
+    base: { hp: 720, atk: 58, def: 22, spd: 108 },
+    ult: { kind: "volley", pct: 0.5, hits: 6, energy: 0 }, ultName: "Nuée de Plumes" },
+  { id: "brume_meduse", name: "Méduse d'Ombre", faction: "nerisse", cls: "mage", tier: "mob",
+    base: { hp: 780, atk: 60, def: 24, spd: 88 },
+    ult: { kind: "lanterns", pct: 0.8, hits: 4 }, ultName: "Voile Siphon" },
+  { id: "brume_aragne", name: "Aragne de Brume", faction: "nyxara", cls: "assassin", tier: "mob",
+    base: { hp: 700, atk: 62, def: 20, spd: 112 },
+    ult: { kind: "aoe_stun", pct: 1.0, dur: 1500 }, ultName: "Toile Paralysante" },
+  { id: "brume_sanglier", name: "Sanglier Cendreux", faction: "solacia", cls: "warrior", tier: "mob",
+    base: { hp: 1000, atk: 52, def: 34, spd: 92 },
+    ult: { kind: "aoe_blind", pct: 1.3, dur: 2500 }, ultName: "Charge Fumante" },
+  { id: "devoreur_leviathan", name: "Le Léviathan de Suie", faction: "brume", cls: "warrior", tier: "boss",
+    base: { hp: 5200, atk: 85, def: 45, spd: 90 },
+    ult: { kind: "aoe_blind", pct: 2.0, dur: 4000 }, ultName: "Marée de Suie" },
+  { id: "devoreur_tisseuse", name: "La Tisseuse de Silence", faction: "brume", cls: "mage", tier: "boss",
+    base: { hp: 4400, atk: 95, def: 38, spd: 96 },
+    ult: { kind: "aoe_stun", pct: 1.6, dur: 2500 }, ultName: "Suaire de Soie" },
+  { id: "devoreur_avale", name: "L'Avale-Soleil", faction: "brume", cls: "tank", tier: "boss",
+    base: { hp: 6500, atk: 75, def: 55, spd: 80 },
+    ult: { kind: "execute", pct: 4.5 }, ultName: "Grand Engloutissement" },
+];
+export const BOSS_IDS = CREATURES.filter((c) => c.tier === "boss").map((c) => c.id);
+export function creatureById(id) { return CREATURES.find((c) => c.id === id); }
 
 // biomes de combat : 1 par région du GDD, cyclés au-delà du chapitre 5
 export const BIOMES = ["zenith", "sylve", "forge", "maree", "voile"];

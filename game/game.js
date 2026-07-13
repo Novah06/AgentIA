@@ -1,6 +1,6 @@
 // ASTRIA — Les Éclats du Ciel Brisé : client de jeu (solo, mobile-first).
 import { STR } from "./strings.js";
-import { HEROES, FACTIONS, RARITIES, CLASSES, BAL, BIOMES, biomeOf, heroById, chapterOf } from "./data.js";
+import { HEROES, CREATURES, BOSS_IDS, creatureById, FACTIONS, RARITIES, CLASSES, BAL, BIOMES, biomeOf, heroById, chapterOf } from "./data.js";
 
 /* ---------------------------------- utils --------------------------------- */
 
@@ -83,22 +83,36 @@ function teamPower() { return S.team.reduce((a, id) => a + heroPower(id), 0); }
 function chapterName(ch) {
   return ch < STR.ch_names.length ? STR.ch_names[ch] : `${STR.ch_endless} ${ch - STR.ch_names.length + 1}`;
 }
-function enemyTeamFor(idx) {
+// composition des vagues : créatures Brumées, un Chef en dernière vague, Dévoreur au niveau 10
+function wavesFor(idx) {
   const rng = mulberry32(idx * 7919 + 17);
-  const pool = [...HEROES];
-  for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
-  const isBoss = idx % BAL.stages_per_chapter === BAL.stages_per_chapter - 1;
+  const mobs = CREATURES.filter((c) => c.tier === "mob");
+  const pick = () => mobs[Math.floor(rng() * mobs.length)];
   const mult = BAL.enemy_base_mult * Math.pow(BAL.enemy_growth, idx);
-  return pool.slice(0, 5).map((h, k) => ({
-    hero: h, echo: true, boss: isBoss && k === 0,
-    mult: mult * (isBoss && k === 0 ? BAL.boss_mult : 1),
-  }));
+  const { ch, st } = chapterOf(idx);
+  const isBoss = st === BAL.stages_per_chapter - 1;
+  const mobSpecs = (n, m) => Array.from({ length: n }, () => ({ c: pick(), mult: m }));
+  if (!isBoss) {
+    const [m1, m2] = BAL.wave_mults;
+    return [
+      mobSpecs(4, mult * m1),
+      [...mobSpecs(3, mult * m2), { c: pick(), mult: mult * m2, elite: true }],
+    ];
+  }
+  const [m1, m2, m3] = BAL.wave_mults_boss;
+  const boss = creatureById(BOSS_IDS[ch % BOSS_IDS.length]);
+  return [
+    mobSpecs(4, mult * m1),
+    [...mobSpecs(3, mult * m2), { c: pick(), mult: mult * m2, elite: true }],
+    [{ c: boss, mult: mult * m3, boss: true }, ...mobSpecs(2, mult * m2)],
+  ];
+}
+function specPower(s) {
+  const b = s.c.base, m = s.mult * (s.elite ? BAL.elite_mult : 1);
+  return ((b.hp * m) / 8 + b.atk * m * 4 + b.def * m * 6) * (b.spd / 100);
 }
 function enemyPower(idx) {
-  return Math.round(enemyTeamFor(idx).reduce((a, e) => {
-    const b = e.hero.base, m = e.mult * RARITIES[e.hero.rarity].mult;
-    return a + ((b.hp * m) / 8 + b.atk * m * 4 + b.def * m * 6) * (b.spd / 100);
-  }, 0));
+  return Math.round(Math.max(...wavesFor(idx).map((w) => w.reduce((a, s) => a + specPower(s), 0))) * 1.1);
 }
 
 /* ----------------------------------- AFK ----------------------------------- */
@@ -409,7 +423,7 @@ function summonResults(res) {
 /* --------------------------------- combat --------------------------------- */
 
 const PORTRAITS = {};
-for (const h of HEROES) { const im = new Image(); im.src = `./assets/portraits/${h.id}.jpg`; PORTRAITS[h.id] = im; }
+for (const h of [...HEROES, ...CREATURES]) { const im = new Image(); im.src = `./assets/portraits/${h.id}.jpg`; PORTRAITS[h.id] = im; }
 const BIOME_BG = {};
 for (const b of BIOMES) { const im = new Image(); im.src = `./assets/biomes/${b}.jpg`; BIOME_BG[b] = im; }
 
@@ -420,13 +434,16 @@ for (const b of BIOMES) { const im = new Image(); im.src = `./assets/biomes/${b}
 let T = null;            // module three vendorisé
 let three = null;        // { renderer, texCache }
 const MODELS = {};       // heroId -> Group normalisé (hauteur 1, pieds à y=0) | null si échec
-const HERO_H = { bramble: 1.9, pipbogue: 1.4, grondin: 1.35 };
+const HERO_H = { bramble: 1.9, pipbogue: 1.4, grondin: 1.35,
+  brume_loup: 1.1, brume_golem: 1.8, brume_corbeau: 1.1, brume_meduse: 1.25,
+  brume_aragne: 1.0, brume_sanglier: 1.15,
+  devoreur_leviathan: 2.9, devoreur_tisseuse: 2.4, devoreur_avale: 2.6 };
 
 function request3D() {
   import("./vendor/three.js").then((m) => {
     T = m;
     const loader = new T.GLTFLoader();
-    for (const h of HEROES) {
+    for (const h of [...HEROES, ...CREATURES]) {
       loader.load(`./assets/models/${h.id}.glb`,
         (g) => { MODELS[h.id] = prepModel(g.scene); },
         undefined,
@@ -500,19 +517,22 @@ function build3DScene() {
     new T.MeshLambertMaterial({ color: 0x2a2148, transparent: true, opacity: 0.6 }));
   ground.rotation.x = -Math.PI / 2;
   scene.add(ground);
-  for (const u of [...B.allies, ...B.enemies]) {
-    const obj = MODELS[u.id].clone(true);
-    const h = (HERO_H[u.id] || 1.55) * (u.boss ? 1.35 : 1);
-    obj.scale.multiplyScalar(h);
-    u.h3 = h;
-    if (u.echo) tintEcho(obj);
-    obj.rotation.y = u.side === "ally" ? Math.PI : 0;
-    obj.position.set(u.px, 0, u.pz);
-    scene.add(obj);
-    u.obj = obj;
-  }
   B.t3 = { scene, camera };
+  for (const u of B.allies) addUnit3D(u);
   resizeCanvas();
+}
+
+function addUnit3D(u) {
+  const tpl = MODELS[u.id];
+  if (!tpl || !B.t3) return;
+  const obj = tpl.clone(true);
+  const h = (HERO_H[u.id] || 1.55) * (u.boss ? 1.15 : 1) * (u.elite ? 1.3 : 1);
+  obj.scale.setScalar(h);
+  u.h3 = h;
+  obj.rotation.y = u.side === "ally" ? Math.PI : 0;
+  obj.position.set(u.px, 0, u.pz);
+  B.t3.scene.add(obj);
+  u.obj = obj;
 }
 
 let fxLastNow = 0;
@@ -661,6 +681,10 @@ function drawGauges(u) {
   }
   ctx.fillStyle = "rgba(0,0,0,0.55)"; ctx.fillRect(bx, by + 6, bw, 3);
   ctx.fillStyle = "#ffd76a"; ctx.fillRect(bx, by + 6, bw * (u.energy / BAL.energy_max), 3);
+  if (u.boss || u.elite) {
+    ctx.font = "13px sans-serif"; ctx.textAlign = "center";
+    ctx.fillText(u.boss ? "👑" : "⭐", u.x, by - 6);
+  }
   if (u.stunUntil > B.t) { ctx.font = "14px sans-serif"; ctx.textAlign = "center"; ctx.fillText("💫", u.x, by - 8); }
 }
 
@@ -668,7 +692,7 @@ let B = null; // état du combat en cours
 
 function makeUnit(hero, side, stats, opts = {}) {
   return {
-    id: hero.id, hero, side, boss: !!opts.boss, echo: !!opts.echo,
+    id: hero.id, hero, side, boss: !!opts.boss, elite: !!opts.elite, echo: !!opts.echo,
     maxHp: stats.hp, hp: stats.hp, atk: stats.atk, def: stats.def, spd: stats.spd,
     energy: side === "ally" ? 250 : 0, cd: 400,
     shield: 0, shieldUntil: 0, hasteUntil: 0, hasteMult: 1,
@@ -682,28 +706,40 @@ function startBattle(stageIdx) {
   S.attempts++;
   const rng = mulberry32(stageIdx * 104729 + S.attempts * 31);
   const allies = S.team.map((id) => makeUnit(heroById(id), "ally", heroStats(id)));
-  const enemies = enemyTeamFor(stageIdx).map((e) => {
-    const b = e.hero.base, m = e.mult * RARITIES[e.hero.rarity].mult;
-    return makeUnit(e.hero, "enemy",
-      { hp: Math.round(b.hp * m * (e.boss ? 1.6 : 1)), atk: Math.round(b.atk * m), def: Math.round(b.def * m), spd: b.spd },
-      { boss: e.boss, echo: true });
-  });
   B = {
-    stageIdx, rng, allies, enemies, t: 0, over: false, victory: false,
+    stageIdx, rng, allies, enemies: [], waves: wavesFor(stageIdx), waveIdx: 0, waveStart: 0,
+    t: 0, over: false, victory: false,
     speed: 1, floaters: [], banner: null, scheduled: [], frozen: 0,
     biome: biomeOf(chapterOf(stageIdx).ch), introT: 2300,
     fxList: [], flash: null,
   };
   document.getElementById("battle").classList.add("open");
   resizeCanvas();
+  const ids = new Set([...S.team, ...B.waves.flat().map((s) => s.c.id)]);
+  B.use3D = !!T && [...ids].every((id) => MODELS[id]) && init3D();
+  if (B.use3D) build3DScene();
+  spawnWave(0);
   buildIntro();
   document.getElementById("bTitle").textContent =
     `${STR.campaign_chapter} ${chapterOf(stageIdx).ch + 1} — ${STR.campaign_stage} ${chapterOf(stageIdx).st + 1}`;
   document.getElementById("bResult").classList.remove("open");
-  layoutUnits();
-  B.use3D = !!T && [...B.allies, ...B.enemies].every((u) => MODELS[u.id]) && init3D();
-  if (B.use3D) build3DScene();
   document.getElementById("b3dCanvas").style.display = B.use3D ? "block" : "none";
+}
+
+function spawnWave(i) {
+  B.waveIdx = i;
+  B.waveStart = B.t;
+  if (B.t3) for (const u of B.enemies) if (u.obj) B.t3.scene.remove(u.obj);
+  B.enemies = B.waves[i].map((spec) => {
+    const m = spec.mult * (spec.elite ? BAL.elite_mult : 1);
+    return makeUnit(spec.c, "enemy", {
+      hp: Math.round(spec.c.base.hp * m), atk: Math.round(spec.c.base.atk * m),
+      def: Math.round(spec.c.base.def * m), spd: spec.c.base.spd,
+    }, { boss: spec.boss, elite: spec.elite });
+  });
+  layoutUnits();
+  if (B.use3D && B.t3) for (const u of B.enemies) addUnit3D(u);
+  if (i > 0) B.banner = { text: `⚔ ${STR.wave} ${i + 1}/${B.waves.length} ⚔`, t: 1100 };
 }
 
 function layoutUnits() {
@@ -775,7 +811,7 @@ function pickTarget(att, foes) {
 
 function castUltimate(u, foes, mates) {
   const k = u.hero.ult, pct = k.pct;
-  B.banner = { unit: u, t: 900 };
+  B.banner = { unit: u, text: "✦ " + u.hero.ultName + " ✦", t: 900 };
   fxUlt(u, k, foes, mates);
   switch (k.kind) {
     case "aoe_blind":
@@ -851,9 +887,12 @@ function battleTick(dt) {
     u.cd -= dt * (u.spd / 100) * haste;
     if (u.cd <= 0) { u.cd += BAL.attack_interval_ms; unitAct(u); }
   }
-  if (!alive(B.enemies).length) endBattle(true);
+  if (!alive(B.enemies).length) {
+    if (B.waveIdx < B.waves.length - 1) spawnWave(B.waveIdx + 1);
+    else endBattle(true);
+  }
   else if (!alive(B.allies).length) endBattle(false);
-  else if (B.t >= BAL.battle_timeout_ms) endBattle(false, true);
+  else if (B.t - B.waveStart >= BAL.battle_timeout_ms) endBattle(false, true);
 }
 
 function endBattle(victory, timeout = false) {
@@ -992,7 +1031,7 @@ function drawOverlays(W, H) {
     ctx.fillRect(0, H * 0.44, W, 46);
     ctx.font = "bold 16px sans-serif"; ctx.textAlign = "center";
     ctx.fillStyle = `rgba(255,215,140,${a})`;
-    ctx.fillText("✦ " + B.banner.unit.hero.ultName + " ✦", W / 2, H * 0.44 + 29);
+    ctx.fillText(B.banner.text, W / 2, H * 0.44 + 29);
   }
   // flash plein écran (ultimes majeurs)
   if (B.flash) {
@@ -1003,7 +1042,9 @@ function drawOverlays(W, H) {
   }
   // chronomètre
   ctx.font = "12px sans-serif"; ctx.textAlign = "right"; ctx.fillStyle = "rgba(255,255,255,0.6)";
-  ctx.fillText(Math.max(0, Math.ceil((BAL.battle_timeout_ms - B.t) / 1000)) + "s", W - 10, 16);
+  ctx.fillText(Math.max(0, Math.ceil((BAL.battle_timeout_ms - (B.t - B.waveStart)) / 1000)) + "s", W - 10, 16);
+  ctx.textAlign = "left"; ctx.fillStyle = "rgba(255,215,140,0.85)";
+  ctx.fillText(`${STR.wave} ${B.waveIdx + 1}/${B.waves.length}`, 10, 16);
 }
 
 function renderBattle() {
