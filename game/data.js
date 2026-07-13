@@ -96,7 +96,7 @@ export const BAL = {
 
   // campagne
   stages_per_chapter: 10,
-  enemy_base_mult: 0.85,
+  enemy_base_mult: 0.7,
   enemy_growth: 1.055,                                        // par niveau global
   boss_mult: 1.35,
   reward_gold: (idx) => 240 + 90 * idx,

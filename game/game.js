@@ -148,6 +148,9 @@ function doSummon(n) {
     if (S.pityLeg >= BAL.pity_leg && rar !== "legendaire" && rar !== "mythique") rar = "legendaire";
     let pool = HEROES.filter((h) => h.rarity === rar);
     if (!pool.length) pool = HEROES.filter((h) => h.rarity === "legendaire");
+    // biais découverte : favorise les héros non possédés tant qu'il en reste
+    const fresh = pool.filter((h) => !S.roster[h.id]);
+    if (fresh.length && Math.random() < 0.6) pool = fresh;
     const h = pool[Math.floor(Math.random() * pool.length)];
     if (rar === "legendaire" || rar === "mythique") S.pityLeg = 0;
     if (h.id === "nhyx") S.gotNhyx = true;
