@@ -2,15 +2,14 @@ name: package-astria
 
 # Le conteneur de développement n'a pas accès aux CDN Higgsfields (politique réseau) :
 # ce workflow sert de relais — il télécharge les assets générés, les optimise, les
-# committe sur la branche, construit le zip du jeu et l'envoie vers l'URL d'upload signée.
+# committe sur la branche avec le zip du jeu prêt à être importé pour déploiement.
 
 on:
-  workflow_dispatch:
-    inputs:
-      upload_url:
-        description: "URL PUT présignée Higgsfields pour le zip du jeu (optionnel)"
-        required: false
-        default: ""
+  push:
+    branches: [claude/idle-rpg-game-design-l4w7ot]
+    paths:
+      - "game/**"
+      - ".github/workflows/package-astria.yml"
 
 permissions:
   contents: write
@@ -26,31 +25,16 @@ jobs:
           pip3 install --quiet pillow
           cd game && python3 tools/fetch_assets.py
 
-      - name: Committer les assets sur la branche
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add game/assets game/tools/contact_sheet.jpg
-          git diff --cached --quiet || git commit -m "Assets générés du jeu ASTRIA (portraits, keyart, icône)"
-          git push
-
-      - name: Construire le zip du jeu
+      - name: Construire le zip du jeu (logic.js + index.html à la racine)
         run: |
           cd game && zip -r ../astria-game.zip . -x "tools/*"
           unzip -l ../astria-game.zip
+          sha256sum ../astria-game.zip
 
-      - name: Envoyer le zip vers Higgsfields
-        if: ${{ github.event.inputs.upload_url != '' }}
-        env:
-          UPLOAD_URL: ${{ github.event.inputs.upload_url }}
+      - name: Committer assets + zip sur la branche
         run: |
-          code=$(curl -sS -o /dev/null -w "%{http_code}" -X PUT \
-            -H "Content-Type: application/octet-stream" \
-            --data-binary @astria-game.zip "$UPLOAD_URL")
-          echo "PUT status: $code"
-          test "$code" = "200"
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: astria-game
-          path: astria-game.zip
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add game/assets game/tools/contact_sheet.jpg astria-game.zip
+          git diff --cached --quiet || git commit -m "Assets générés + zip du jeu ASTRIA [skip ci]"
+          git push
