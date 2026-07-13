@@ -413,6 +413,144 @@ for (const h of HEROES) { const im = new Image(); im.src = `./assets/portraits/$
 const BIOME_BG = {};
 for (const b of BIOMES) { const im = new Image(); im.src = `./assets/biomes/${b}.jpg`; BIOME_BG[b] = im; }
 
+/* ------------------------- rendu 3D (Three.js vendorisé) ------------------------- */
+// Les héros sont des meshs GLB statiques animés par code (flottement, charge, chute).
+// Si un modèle ou WebGL manque, le combat bascule automatiquement sur le rendu 2D.
+
+let T = null;            // module three vendorisé
+let three = null;        // { renderer, texCache }
+const MODELS = {};       // heroId -> Group normalisé (hauteur 1, pieds à y=0) | null si échec
+const HERO_H = { bramble: 2.05, pipbogue: 1.5, grondin: 1.45 };
+
+function request3D() {
+  import("./vendor/three.js").then((m) => {
+    T = m;
+    const loader = new T.GLTFLoader();
+    for (const h of HEROES) {
+      loader.load(`./assets/models/${h.id}.glb`,
+        (g) => { MODELS[h.id] = prepModel(g.scene); },
+        undefined,
+        () => { MODELS[h.id] = null; });
+    }
+  }).catch(() => { T = null; });
+}
+
+function prepModel(root) {
+  const box = new T.Box3().setFromObject(root);
+  const size = new T.Vector3(); box.getSize(size);
+  const center = new T.Vector3(); box.getCenter(center);
+  root.position.set(-center.x, -box.min.y, -center.z);
+  root.traverse((o) => { if (o.isMesh && o.material) o.material.side = T.DoubleSide; });
+  const norm = new T.Group();
+  norm.add(root);
+  norm.scale.setScalar(1 / Math.max(0.0001, size.y));
+  const wrap = new T.Group();
+  wrap.add(norm);
+  return wrap;
+}
+
+function init3D() {
+  if (three) return true;
+  if (!T) return false;
+  try {
+    const renderer = new T.WebGLRenderer({ canvas: document.getElementById("b3dCanvas"), antialias: true });
+    renderer.setClearColor(0x241a4e);
+    three = { renderer, texCache: {} };
+    return true;
+  } catch { T = null; return false; }
+}
+
+function biomeTexture(b) {
+  if (three.texCache[b]) return three.texCache[b];
+  const tex = new T.TextureLoader().load(`./assets/biomes/${b}.jpg`);
+  tex.colorSpace = T.SRGBColorSpace;
+  three.texCache[b] = tex;
+  return tex;
+}
+
+function tintEcho(obj) {
+  obj.traverse((o) => {
+    if (o.isMesh && o.material) {
+      o.material = o.material.clone();
+      o.material.userData.cloned = true;
+      if (o.material.color) o.material.color.multiply(new T.Color(0.72, 0.55, 1.0));
+    }
+  });
+}
+
+function build3DScene() {
+  const scene = new T.Scene();
+  scene.fog = new T.Fog(0x241a4e, 15, 34);
+  const camera = new T.PerspectiveCamera(55, 1, 0.1, 100);
+  camera.position.set(0, 4.8, 8.2);
+  camera.lookAt(0, 1.0, -2);
+  scene.add(new T.HemisphereLight(0xfff2d8, 0x3a2a55, 1.15));
+  const dir = new T.DirectionalLight(0xffe0b0, 1.3);
+  dir.position.set(3, 7, 4);
+  scene.add(dir);
+  const mat = new T.MeshBasicMaterial({ color: 0xbdb3cf, map: biomeTexture(B.biome) });
+  const backdrop = new T.Mesh(new T.PlaneGeometry(34, 60), mat);
+  backdrop.position.set(0, 10, -17);
+  scene.add(backdrop);
+  const ground = new T.Mesh(new T.CircleGeometry(9, 40),
+    new T.MeshLambertMaterial({ color: 0x241a3e, transparent: true, opacity: 0.88 }));
+  ground.rotation.x = -Math.PI / 2;
+  scene.add(ground);
+  for (const u of [...B.allies, ...B.enemies]) {
+    const obj = MODELS[u.id].clone(true);
+    const h = (HERO_H[u.id] || 1.7) * (u.boss ? 1.35 : 1);
+    obj.scale.multiplyScalar(h);
+    u.h3 = h;
+    if (u.echo) tintEcho(obj);
+    obj.rotation.y = u.side === "ally" ? Math.PI : 0;
+    obj.position.set(u.px, 0, u.pz);
+    scene.add(obj);
+    u.obj = obj;
+  }
+  B.t3 = { scene, camera };
+  resizeCanvas();
+}
+
+function update3D(W, H) {
+  const now = performance.now();
+  for (const u of [...B.allies, ...B.enemies]) {
+    const o = u.obj;
+    if (!o) continue;
+    if (u.hp <= 0) {
+      if (!u.deathT) u.deathT = now;
+      const p = Math.min(1, (now - u.deathT) / 600);
+      o.rotation.x = (u.side === "ally" ? -1 : 1) * p * Math.PI / 2;
+      o.position.y = -0.3 * p;
+      o.visible = now - u.deathT < 1400;
+    } else {
+      const lunge = u.lungeT > 0 ? Math.sin((u.lungeT / 240) * Math.PI) * 1.1 : 0;
+      const dirZ = u.side === "ally" ? -1 : 1;
+      o.position.set(
+        u.px + (u.hitT > 0 ? (Math.random() - 0.5) * 0.08 : 0),
+        Math.sin(now / 480 + u.px * 2) * 0.04,
+        u.pz + dirZ * lunge);
+      o.rotation.x = 0;
+    }
+    const v = new T.Vector3(o.position.x, u.h3 + 0.35, o.position.z).project(B.t3.camera);
+    u.x = (v.x * 0.5 + 0.5) * W;
+    u.y = (-v.y * 0.5 + 0.5) * H;
+  }
+}
+
+function drawGauges(u) {
+  if (u.hp <= 0) return;
+  const bw = 54, bx = u.x - bw / 2, by = u.y;
+  ctx.fillStyle = "rgba(0,0,0,0.55)"; ctx.fillRect(bx, by, bw, 5);
+  ctx.fillStyle = u.side === "ally" ? "#59d977" : "#e05c5c";
+  ctx.fillRect(bx, by, bw * (u.hp / u.maxHp), 5);
+  if (u.shieldUntil > B.t && u.shield > 0) {
+    ctx.fillStyle = "#9ecbff"; ctx.fillRect(bx, by - 2, bw * Math.min(1, u.shield / u.maxHp), 2);
+  }
+  ctx.fillStyle = "rgba(0,0,0,0.55)"; ctx.fillRect(bx, by + 6, bw, 3);
+  ctx.fillStyle = "#ffd76a"; ctx.fillRect(bx, by + 6, bw * (u.energy / BAL.energy_max), 3);
+  if (u.stunUntil > B.t) { ctx.font = "14px sans-serif"; ctx.textAlign = "center"; ctx.fillText("💫", u.x, by - 8); }
+}
+
 let B = null; // état du combat en cours
 
 function makeUnit(hero, side, stats, opts = {}) {
@@ -449,6 +587,9 @@ function startBattle(stageIdx) {
     `${STR.campaign_chapter} ${chapterOf(stageIdx).ch + 1} — ${STR.campaign_stage} ${chapterOf(stageIdx).st + 1}`;
   document.getElementById("bResult").classList.remove("open");
   layoutUnits();
+  B.use3D = !!T && [...B.allies, ...B.enemies].every((u) => MODELS[u.id]) && init3D();
+  if (B.use3D) build3DScene();
+  document.getElementById("b3dCanvas").style.display = B.use3D ? "block" : "none";
 }
 
 function layoutUnits() {
@@ -465,6 +606,16 @@ function layoutUnits() {
     });
   };
   place(B.enemies, true); place(B.allies, false);
+  // positions 3D : lignes face à face de part et d'autre du centre
+  const place3d = (units, sideSign) => {
+    const front = units.filter((u) => CLASSES[u.hero.cls].row === "front");
+    const back = units.filter((u) => CLASSES[u.hero.cls].row === "back");
+    for (const [row, dz] of [[front, 2.4], [back, 4.1]]) row.forEach((u, i) => {
+      u.px = (i - (row.length - 1) / 2) * 1.75;
+      u.pz = sideSign * dz;
+    });
+  };
+  place3d(B.allies, 1); place3d(B.enemies, -1);
 }
 
 function alive(list) { return list.filter((u) => u.hp > 0); }
@@ -617,6 +768,9 @@ function endBattle(victory, timeout = false) {
   if (retry) retry.onclick = () => startBattle(idx);
 }
 function closeBattle() {
+  if (B && B.t3) B.t3.scene.traverse((o) => {
+    if (o.isMesh && o.material && o.material.userData.cloned) o.material.dispose();
+  });
   B = null;
   document.querySelectorAll(".bintro").forEach((e) => e.remove());
   document.getElementById("battle").classList.remove("open");
@@ -654,6 +808,12 @@ function resizeCanvas() {
   const w = canvas.clientWidth, h = canvas.clientHeight;
   canvas.width = w * dpr; canvas.height = h * dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (three && B && B.t3) {
+    three.renderer.setPixelRatio(dpr);
+    three.renderer.setSize(w, h, false);
+    B.t3.camera.aspect = w / h;
+    B.t3.camera.updateProjectionMatrix();
+  }
   if (B) layoutUnits();
 }
 addEventListener("resize", resizeCanvas);
@@ -695,29 +855,7 @@ function drawUnit(u) {
   ctx.restore();
 }
 
-function renderBattle() {
-  const W = canvas.clientWidth, H = canvas.clientHeight;
-  const bg = BIOME_BG[B.biome];
-  if (bg && bg.complete && bg.naturalWidth) {
-    const s = Math.max(W / bg.naturalWidth, H / bg.naturalHeight);
-    const dw = bg.naturalWidth * s, dh = bg.naturalHeight * s;
-    ctx.drawImage(bg, (W - dw) / 2, (H - dh) / 2, dw, dh);
-    ctx.fillStyle = "rgba(11,10,31,0.45)"; ctx.fillRect(0, 0, W, H);
-  } else {
-    // repli procédural « Brume » (formule de style : ciel doré rongé de violet)
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#1a1033"); g.addColorStop(0.45, "#2a1a4d"); g.addColorStop(0.75, "#3d2a54"); g.addColorStop(1, "#593860");
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  }
-  const g2 = ctx.createRadialGradient(W / 2, H * 0.52, 10, W / 2, H * 0.52, W * 0.7);
-  g2.addColorStop(0, "rgba(255,205,120,0.16)"); g2.addColorStop(1, "rgba(255,205,120,0)");
-  ctx.fillStyle = g2; ctx.fillRect(0, 0, W, H);
-  ctx.strokeStyle = "rgba(255,215,140,0.25)"; ctx.setLineDash([6, 8]);
-  ctx.beginPath(); ctx.moveTo(20, H * 0.5); ctx.lineTo(W - 20, H * 0.5); ctx.stroke(); ctx.setLineDash([]);
-
-  for (const u of B.enemies) drawUnit(u);
-  for (const u of B.allies) drawUnit(u);
-
+function drawOverlays(W, H) {
   // dégâts flottants
   for (const f of B.floaters) {
     ctx.globalAlpha = Math.max(0, 1 - f.age / 900);
@@ -738,6 +876,39 @@ function renderBattle() {
   // chronomètre
   ctx.font = "12px sans-serif"; ctx.textAlign = "right"; ctx.fillStyle = "rgba(255,255,255,0.6)";
   ctx.fillText(Math.max(0, Math.ceil((BAL.battle_timeout_ms - B.t) / 1000)) + "s", W - 10, 16);
+}
+
+function renderBattle() {
+  const W = canvas.clientWidth, H = canvas.clientHeight;
+  if (B.use3D && three && B.t3) {
+    update3D(W, H);
+    three.renderer.render(B.t3.scene, B.t3.camera);
+    ctx.clearRect(0, 0, W, H);
+    for (const u of [...B.enemies, ...B.allies]) drawGauges(u);
+    drawOverlays(W, H);
+    return;
+  }
+  const bg = BIOME_BG[B.biome];
+  if (bg && bg.complete && bg.naturalWidth) {
+    const s = Math.max(W / bg.naturalWidth, H / bg.naturalHeight);
+    const dw = bg.naturalWidth * s, dh = bg.naturalHeight * s;
+    ctx.drawImage(bg, (W - dw) / 2, (H - dh) / 2, dw, dh);
+    ctx.fillStyle = "rgba(11,10,31,0.45)"; ctx.fillRect(0, 0, W, H);
+  } else {
+    // repli procédural « Brume » (formule de style : ciel doré rongé de violet)
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, "#1a1033"); g.addColorStop(0.45, "#2a1a4d"); g.addColorStop(0.75, "#3d2a54"); g.addColorStop(1, "#593860");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  }
+  const g2 = ctx.createRadialGradient(W / 2, H * 0.52, 10, W / 2, H * 0.52, W * 0.7);
+  g2.addColorStop(0, "rgba(255,205,120,0.16)"); g2.addColorStop(1, "rgba(255,205,120,0)");
+  ctx.fillStyle = g2; ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = "rgba(255,215,140,0.25)"; ctx.setLineDash([6, 8]);
+  ctx.beginPath(); ctx.moveTo(20, H * 0.5); ctx.lineTo(W - 20, H * 0.5); ctx.stroke(); ctx.setLineDash([]);
+
+  for (const u of B.enemies) drawUnit(u);
+  for (const u of B.allies) drawUnit(u);
+  drawOverlays(W, H);
 }
 
 /* --- boucle à pas de temps fixe --- */
@@ -844,6 +1015,7 @@ function welcome() {
 
 if (devMode) document.getElementById("dev").style.display = "block";
 resizeCanvas();
+request3D();
 render();
 if (!S.tuto) welcome();
 setInterval(save, 15000);

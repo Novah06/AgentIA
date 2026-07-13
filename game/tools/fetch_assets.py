@@ -58,3 +58,25 @@ for i, hid in enumerate(JOBS):
     sheet.paste(im, ((i % 5) * 256, (i // 5) * 256))
 sheet.save("tools/contact_sheet.jpg", quality=85)
 print("contact sheet ok")
+
+# --- références 3D (QC visuel avant reconstruction ; hors zip, commité pour inspection) ---
+CONCEPTS = {
+    "kaelis":     "hf_20260713_093045_af96d1b5-6d53-4449-b29e-66ee7fdfa3bc.png",
+    "bramble":    "hf_20260713_093048_0bfe6adc-dec2-4375-be4a-d173f09b9864.png",
+    "maelle":     "hf_20260713_093051_71776e6a-9908-4700-a493-2502fbfa70e7.png",
+    "sorren":     "hf_20260713_093055_61af3f2c-b71e-463a-b580-07594c7196af.png",
+    "grondin":    "hf_20260713_093059_60e0efe6-1930-4ef8-a352-a6ac2489df86.png",
+    "vesperine":  "hf_20260713_093101_8fc00534-cd0c-4359-b269-be0c154b95dc.png",
+    "pipbogue":   "hf_20260713_093104_96b441b0-11d8-47ad-a4aa-4c4f2ba83dd6.png",
+    "sylvarende": "hf_20260713_093112_f89aa85a-95bb-4643-9e24-ff1092a7435e.png",
+    "theoline":   "hf_20260713_093113_b5f95564-fae9-49f4-aa7f-d752157510dc.png",
+    "nhyx":       "hf_20260713_093114_bc15a591-5231-4def-8346-9bb9ea2ca7d1.png",
+}
+os.makedirs("tools/concepts", exist_ok=True)
+sheet2 = Image.new("RGB", (5 * 256, 2 * 256), (255, 255, 255))
+for i, (hid, fn) in enumerate(CONCEPTS.items()):
+    im = get(fn).resize((256, 256), Image.LANCZOS)
+    im.save(f"tools/concepts/{hid}.jpg", quality=80)
+    sheet2.paste(im, ((i % 5) * 256, (i // 5) * 256))
+sheet2.save("tools/concepts_sheet.jpg", quality=85)
+print("concepts sheet ok")
