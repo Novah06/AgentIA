@@ -1,0 +1,15 @@
+id,role,type,description,size/ratio,style line ref,source
+portrait_kaelis,hero card art + battle unit portrait for Kaelis (Solacia Lame Légendaire),static 2D portrait,radiant sun knight woman,1:1,STYLE FORMULA v1,generate
+portrait_bramble,hero card art + battle unit portrait for Bramble (Verdaine Rempart Éveillé),static 2D portrait,mossy treant golem guardian,1:1,STYLE FORMULA v1,generate
+portrait_maelle,hero card art + battle unit portrait for Maëlle (Nérisse Aube Astral),static 2D portrait,gentle siren healer woman,1:1,STYLE FORMULA v1,generate
+portrait_sorren,hero card art + battle unit portrait for Sorren (Nérisse Ombre Légendaire),static 2D portrait,shadowy tideborn young assassin,1:1,STYLE FORMULA v1,generate
+portrait_grondin,hero card art + battle unit portrait for Grondin (Karvok Arc Éveillé),static 2D portrait,dwarf inventor steam cannon,1:1,STYLE FORMULA v1,generate
+portrait_vesperine,hero card art + battle unit portrait for Dame Vespérine (Nyxara Arcane Légendaire),static 2D portrait,ghostly lantern aristocrat lady,1:1,STYLE FORMULA v1,generate
+portrait_pipbogue,hero card art + battle unit portrait for Pip & Bogue (Karvok Aube Astral),static 2D portrait,girl mechanic riding boiler golem,1:1,STYLE FORMULA v1,generate
+portrait_sylvarende,hero card art + battle unit portrait for Sylvarende (Verdaine Arcane Astral),static 2D portrait,ancient sleepy dryad sorceress,1:1,STYLE FORMULA v1,generate
+portrait_theoline,hero card art + battle unit portrait for Théoline (Solacia Arc Éveillé),static 2D portrait,young academy archer prodigy,1:1,STYLE FORMULA v1,generate
+portrait_nhyx,hero card art + battle unit portrait for Nhyx (Lucens Ombre Mythique),static 2D portrait,starlit glass-bodied spirit,1:1,STYLE FORMULA v1,generate
+bg_hub_sky,hub + menu backdrop (floating islands golden sky),procedural CSS/SVG background,layered gradient sky with island silhouettes per formula palette,9:16 fluid,STYLE FORMULA v1,procedural
+bg_battle_mist,battle backdrop (Brume-corrupted sky variant),procedural CSS/SVG background,darker violet-mist gradient variant per formula palette,9:16 fluid,STYLE FORMULA v1,procedural
+store_thumbnail,deploy catalog cover + OG image + bandeau d'accueil in-game (assets/keyart.jpg),marketing image,floating islands shattered star key art,16:9,STYLE FORMULA v1,generate
+store_favicon,deploy favicon + catalog icon,ui icon,golden compass star emblem,1:1,STYLE FORMULA v1,generate

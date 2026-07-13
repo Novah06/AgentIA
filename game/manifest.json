@@ -1,0 +1,14 @@
+{
+  "name": "ASTRIA — Les Éclats du Ciel Brisé",
+  "short_name": "ASTRIA",
+  "description": "Idle RPG : collectionnez les Éveillés, repoussez la Brume et rallumez le ciel d'Astria.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b0a1f",
+  "theme_color": "#0b0a1f",
+  "icons": [
+    { "src": "./assets/icon.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
