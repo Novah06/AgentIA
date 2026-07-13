@@ -13,6 +13,13 @@ même application fermée (plafond 12 h), calculés au retour du joueur.
 
 ## Contenu de la tranche verticale
 
+- **5 terrains de biome** (un par région : Zénith Doré, Sylve Suspendue, Forges
+  d'Écume, Archipel des Marées, Voile Ombral — cyclés au-delà du chapitre 5),
+  chacun avec son décor généré servant de fond de combat et son **animation
+  d'entrée en scène** (rayons solaires, feuilles, vapeur + lave, vague, brume
+  qui se déchire) : titre du chapitre, alignements face à face et éclat « VS »
+  avant le début de la simulation.
+
 - 10 héros (GDD §3) avec portraits générés, 6 factions, boucle de contre (+25 %).
 - Invocation gacha : Éveillé 58 % / Astral 33 % / Légendaire 8,4 % / Mythique 0,6 %,
   pity Légendaire à 30 tirages, Nhyx garanti au 80e — compteurs affichés.
