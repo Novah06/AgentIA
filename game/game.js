@@ -420,7 +420,7 @@ for (const b of BIOMES) { const im = new Image(); im.src = `./assets/biomes/${b}
 let T = null;            // module three vendorisé
 let three = null;        // { renderer, texCache }
 const MODELS = {};       // heroId -> Group normalisé (hauteur 1, pieds à y=0) | null si échec
-const HERO_H = { bramble: 2.05, pipbogue: 1.5, grondin: 1.45 };
+const HERO_H = { bramble: 1.9, pipbogue: 1.4, grondin: 1.35 };
 
 function request3D() {
   import("./vendor/three.js").then((m) => {
@@ -473,7 +473,8 @@ function tintEcho(obj) {
     if (o.isMesh && o.material) {
       o.material = o.material.clone();
       o.material.userData.cloned = true;
-      if (o.material.color) o.material.color.multiply(new T.Color(0.72, 0.55, 1.0));
+      if (o.material.color) o.material.color.multiply(new T.Color(0.5, 0.36, 0.9));
+      if (o.material.emissive) o.material.emissive.set(0x1c0836);
     }
   });
 }
@@ -481,24 +482,24 @@ function tintEcho(obj) {
 function build3DScene() {
   const scene = new T.Scene();
   scene.fog = new T.Fog(0x241a4e, 15, 34);
-  const camera = new T.PerspectiveCamera(55, 1, 0.1, 100);
-  camera.position.set(0, 4.8, 8.2);
-  camera.lookAt(0, 1.0, -2);
+  const camera = new T.PerspectiveCamera(52, 1, 0.1, 100);
+  camera.position.set(0, 5.8, 11.2);
+  camera.lookAt(0, 0.7, -2.6);
   scene.add(new T.HemisphereLight(0xfff2d8, 0x3a2a55, 1.15));
   const dir = new T.DirectionalLight(0xffe0b0, 1.3);
   dir.position.set(3, 7, 4);
   scene.add(dir);
   const mat = new T.MeshBasicMaterial({ color: 0xbdb3cf, map: biomeTexture(B.biome) });
-  const backdrop = new T.Mesh(new T.PlaneGeometry(34, 60), mat);
-  backdrop.position.set(0, 10, -17);
+  const backdrop = new T.Mesh(new T.PlaneGeometry(38, 64), mat);
+  backdrop.position.set(0, 8, -16);
   scene.add(backdrop);
-  const ground = new T.Mesh(new T.CircleGeometry(9, 40),
-    new T.MeshLambertMaterial({ color: 0x241a3e, transparent: true, opacity: 0.88 }));
+  const ground = new T.Mesh(new T.CircleGeometry(10, 40),
+    new T.MeshLambertMaterial({ color: 0x2a2148, transparent: true, opacity: 0.6 }));
   ground.rotation.x = -Math.PI / 2;
   scene.add(ground);
   for (const u of [...B.allies, ...B.enemies]) {
     const obj = MODELS[u.id].clone(true);
-    const h = (HERO_H[u.id] || 1.7) * (u.boss ? 1.35 : 1);
+    const h = (HERO_H[u.id] || 1.55) * (u.boss ? 1.35 : 1);
     obj.scale.multiplyScalar(h);
     u.h3 = h;
     if (u.echo) tintEcho(obj);
@@ -610,8 +611,8 @@ function layoutUnits() {
   const place3d = (units, sideSign) => {
     const front = units.filter((u) => CLASSES[u.hero.cls].row === "front");
     const back = units.filter((u) => CLASSES[u.hero.cls].row === "back");
-    for (const [row, dz] of [[front, 2.4], [back, 4.1]]) row.forEach((u, i) => {
-      u.px = (i - (row.length - 1) / 2) * 1.75;
+    for (const [row, dz] of [[front, 2.1], [back, 3.6]]) row.forEach((u, i) => {
+      u.px = (i - (row.length - 1) / 2) * 1.6;
       u.pz = sideSign * dz;
     });
   };

@@ -18,3 +18,5 @@ biome_maree,décor de combat + intro chapitre 4/9/14… (Archipel des Marées),s
 biome_voile,décor de combat + intro chapitre 5/10/15… (Voile Ombral),static 2D background,violet crystals soul lanterns arena,9:16,STYLE FORMULA v1,generate
 store_thumbnail,deploy catalog cover + OG image + bandeau d'accueil in-game (assets/keyart.jpg),marketing image,floating islands shattered star key art,16:9,STYLE FORMULA v1,generate
 store_favicon,deploy favicon + catalog icon,ui icon,golden compass star emblem,1:1,STYLE FORMULA v1,generate
+concept_3d_x10,références de reconstruction 3D (1 par héros; corps entier fond blanc),static 2D concept,full-body hero reference for image-to-3D,1:1,STYLE FORMULA v1 (perspective 3D §8),generate
+model_x10,mesh GLB texturé par héros posé sur le terrain de combat 3D (assets/models/<id>.glb),3D static mesh,image_to_3d 10k tris texture 512 webp,GLB,STYLE FORMULA v1 via concept,generate

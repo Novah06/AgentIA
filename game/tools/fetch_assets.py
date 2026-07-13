@@ -32,24 +32,30 @@ def get(name):
         return Image.open(io.BytesIO(r.read())).convert("RGB")
 
 for hid, fn in JOBS.items():
+    if os.path.exists(f"assets/portraits/{hid}.jpg"):
+        continue
     im = get(fn).resize((512, 512), Image.LANCZOS)
     im.save(f"assets/portraits/{hid}.jpg", quality=82, optimize=True)
     print(hid, os.path.getsize(f"assets/portraits/{hid}.jpg") // 1024, "Ko")
 
 for bid, fn in BIOMES.items():
+    if os.path.exists(f"assets/biomes/{bid}.jpg"):
+        continue
     im = get(fn)
     im = im.resize((720, round(im.height * 720 / im.width)), Image.LANCZOS)
     im.save(f"assets/biomes/{bid}.jpg", quality=80, optimize=True)
     print("biome", bid, os.path.getsize(f"assets/biomes/{bid}.jpg") // 1024, "Ko")
 
-ka = get(KEYART)
-ka = ka.resize((1024, round(ka.height * 1024 / ka.width)), Image.LANCZOS)
-ka.save("assets/keyart.jpg", quality=82, optimize=True)
-print("keyart", os.path.getsize("assets/keyart.jpg") // 1024, "Ko")
+if not os.path.exists("assets/keyart.jpg"):
+    ka = get(KEYART)
+    ka = ka.resize((1024, round(ka.height * 1024 / ka.width)), Image.LANCZOS)
+    ka.save("assets/keyart.jpg", quality=82, optimize=True)
+    print("keyart", os.path.getsize("assets/keyart.jpg") // 1024, "Ko")
 
-ic = get(ICON).resize((512, 512), Image.LANCZOS)
-ic.save("assets/icon.png", optimize=True)
-print("icon", os.path.getsize("assets/icon.png") // 1024, "Ko")
+if not os.path.exists("assets/icon.png"):
+    ic = get(ICON).resize((512, 512), Image.LANCZOS)
+    ic.save("assets/icon.png", optimize=True)
+    print("icon", os.path.getsize("assets/icon.png") // 1024, "Ko")
 
 # planche-contact pour vérification visuelle du style
 sheet = Image.new("RGB", (5 * 256, 2 * 256), (20, 16, 40))
@@ -75,9 +81,11 @@ CONCEPTS = {
 os.makedirs("tools/concepts", exist_ok=True)
 sheet2 = Image.new("RGB", (5 * 256, 2 * 256), (255, 255, 255))
 for i, (hid, fn) in enumerate(CONCEPTS.items()):
-    im = get(fn).resize((256, 256), Image.LANCZOS)
-    im.save(f"tools/concepts/{hid}.jpg", quality=80)
-    sheet2.paste(im, ((i % 5) * 256, (i // 5) * 256))
+    p = f"tools/concepts/{hid}.jpg"
+    im = (Image.open(p) if os.path.exists(p) else get(fn).resize((256, 256), Image.LANCZOS))
+    if not os.path.exists(p):
+        im.save(p, quality=80)
+    sheet2.paste(im.resize((256, 256)), ((i % 5) * 256, (i // 5) * 256))
 sheet2.save("tools/concepts_sheet.jpg", quality=85)
 print("concepts sheet ok")
 
@@ -97,6 +105,8 @@ MODELS3D = {
 }
 os.makedirs("assets/models", exist_ok=True)
 for hid, fn in MODELS3D.items():
+    if os.path.exists(f"assets/models/{hid}.glb"):
+        continue
     with urllib.request.urlopen(CDN3D + fn, timeout=120) as r:
         data = r.read()
     with open(f"assets/models/{hid}.glb", "wb") as f:
