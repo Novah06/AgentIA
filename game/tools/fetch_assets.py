@@ -102,6 +102,15 @@ MODELS3D = {
     "sylvarende": "6fd2e3ec-d8a4-4adb-a411-b3fc3b22aea0.glb",
     "theoline":   "a5383847-4896-4cd7-bed1-3b33db4c2a15.glb",
     "nhyx":       "4ba4faad-f719-4295-9e13-ea64df8e8a57.glb",
+    "brume_loup":         "1055323d-5eec-4f72-9f53-ef3781679a46.glb",
+    "brume_golem":        "a11a389a-0f36-47d8-a93e-78907c7f3bae.glb",
+    "brume_corbeau":      "3fdd2b61-11a8-4e9e-a3fb-27d0adfa7ffa.glb",
+    "brume_meduse":       "a866c187-88eb-418b-ade0-fac71bb9f127.glb",
+    "brume_aragne":       "20b54369-1d6b-43fd-b972-744e8d14c4e2.glb",
+    "brume_sanglier":     "30c76c76-254b-4db3-bd76-5637b5b2ddf8.glb",
+    "devoreur_leviathan": "3f75484e-f9d0-4291-abd2-edc97b94c927.glb",
+    "devoreur_tisseuse":  "c5c58975-d56d-4c23-b17f-722b87a07c94.glb",
+    "devoreur_avale":     "fad08416-7b93-4113-bdc1-e9e5421c5ff1.glb",
 }
 os.makedirs("assets/models", exist_ok=True)
 for hid, fn in MODELS3D.items():
