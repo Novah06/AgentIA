@@ -20,3 +20,5 @@ store_thumbnail,deploy catalog cover + OG image + bandeau d'accueil in-game (ass
 store_favicon,deploy favicon + catalog icon,ui icon,golden compass star emblem,1:1,STYLE FORMULA v1,generate
 concept_3d_x10,références de reconstruction 3D (1 par héros; corps entier fond blanc),static 2D concept,full-body hero reference for image-to-3D,1:1,STYLE FORMULA v1 (perspective 3D §8),generate
 model_x10,mesh GLB texturé par héros posé sur le terrain de combat 3D (assets/models/<id>.glb),3D static mesh,image_to_3d 10k tris texture 512 webp,GLB,STYLE FORMULA v1 via concept,generate
+creature_concept_x9,références 3D des créatures (aussi portraits en jeu assets/portraits/),static 2D concept,full-body creature reference white bg,1:1,STYLE FORMULA v1 (perspective 3D §8),generate
+creature_model_x9,meshs GLB des créatures et Dévoreurs (assets/models/),3D static mesh,image_to_3d 8-12k tris texture 512 webp,GLB,STYLE FORMULA v1 via concept,generate

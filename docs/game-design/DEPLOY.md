@@ -13,6 +13,13 @@ même application fermée (plafond 12 h), calculés au retour du joueur.
 
 ## Contenu de la tranche verticale
 
+- **Vagues et bestiaire** : chaque niveau se joue en 2 vagues (3 au niveau de
+  boss). Les ennemis sont 6 créatures Brumées en 3D (Loup Brumé, Golem de Suie,
+  Corbeau du Voile, Méduse d'Ombre, Aragne de Brume, Sanglier Cendreux), un
+  **Chef** élite (⭐, stats ×1,6, taille +30 %) mène la dernière vague, et un
+  **Dévoreur** (👑) clôt chaque chapitre : Léviathan de Suie, Tisseuse de
+  Silence et Avale-Soleil en rotation.
+
 - **Héros en 3D** : les 10 Éveillés sont des modèles 3D texturés (reconstruction
   image→3D, 10 000 triangles, textures WebP 512 px, ~0,6 Mo chacun) rendus avec
   Three.js (vendorisé) sur le terrain du biome — équipe vue de dos au premier
