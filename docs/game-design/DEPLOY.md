@@ -13,6 +13,13 @@ même application fermée (plafond 12 h), calculés au retour du joueur.
 
 ## Contenu de la tranche verticale
 
+- **Héros en 3D** : les 10 Éveillés sont des modèles 3D texturés (reconstruction
+  image→3D, 10 000 triangles, textures WebP 512 px, ~0,6 Mo chacun) rendus avec
+  Three.js (vendorisé) sur le terrain du biome — équipe vue de dos au premier
+  plan, Échos teintés de Brume en face. Animations procédurales : flottement,
+  charge vers la cible, secousse à l'impact, chute à la mort. Jauges de vie et
+  d'énergie projetées au-dessus des têtes. **Repli 2D automatique** tant que les
+  modèles ne sont pas téléchargés ou si WebGL est indisponible.
 - **5 terrains de biome** (un par région : Zénith Doré, Sylve Suspendue, Forges
   d'Écume, Archipel des Marées, Voile Ombral — cyclés au-delà du chapitre 5),
   chacun avec son décor généré servant de fond de combat et son **animation
