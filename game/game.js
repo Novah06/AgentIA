@@ -976,6 +976,7 @@ function makeUnit(hero, side, stats, opts = {}) {
     shield: 0, shieldUntil: 0, hasteUntil: 0, hasteMult: 1,
     stunUntil: 0, markUntil: 0, markPct: 0, blindUntil: 0,
     lungeT: 0, hitT: 0, x: 0, y: 0, r: 30,
+    stDealt: 0, stTaken: 0, stHealed: 0,
   };
 }
 
@@ -1066,18 +1067,24 @@ function dealDamage(att, dif, pct, opts = {}) {
   if (crit) { dmg *= BAL.crit_mult; if (B.use3D) fxShake(0.09, 240); }
   if (dif.markUntil > B.t) dmg *= 1 + dif.markPct;
   dmg = Math.round(dmg);
+  let absorbed = 0;
   if (dif.shieldUntil > B.t && dif.shield > 0) {
-    const abs = Math.min(dif.shield, dmg); dif.shield -= abs; dmg -= abs;
+    absorbed = Math.min(dif.shield, dmg); dif.shield -= absorbed; dmg -= absorbed;
   }
+  const hpLoss = Math.min(dif.hp, dmg);
+  att.stDealt += absorbed + hpLoss;
+  dif.stTaken += absorbed + hpLoss;
   dif.hp = Math.max(0, dif.hp - dmg);
   dif.hitT = 160;
   if (!opts.noEnergy) dif.energy = Math.min(BAL.energy_max, dif.energy + BAL.energy_per_hit);
   B.floaters.push({ x: dif.x + (B.rng() - 0.5) * 20, y: dif.y - 34, txt: fmt(dmg), color: crit ? "#ffd76a" : "#fff", big: crit, age: 0 });
   return dmg;
 }
-function heal(u, amount) {
+function heal(u, amount, healer) {
   if (u.hp <= 0) return;
-  u.hp = Math.min(u.maxHp, u.hp + Math.round(amount));
+  const healed = Math.min(u.maxHp - u.hp, Math.round(amount));
+  u.hp += healed;
+  if (healer) healer.stHealed += healed;
   B.floaters.push({ x: u.x, y: u.y - 34, txt: "+" + fmt(amount), color: "#7fe58a", age: 0 });
 }
 function pickTarget(att, foes) {
@@ -1102,7 +1109,7 @@ function castUltimate(u, foes, mates) {
     case "shield":
       for (const a of alive(mates)) { a.shield = Math.round(u.maxHp * pct); a.shieldUntil = B.t + k.dur; } break;
     case "heal_sleep": {
-      for (const a of alive(mates)) heal(a, u.atk * pct);
+      for (const a of alive(mates)) heal(a, u.atk * pct, u);
       const t = alive(foes).reduce((a, b) => (a.hp < b.hp ? a : b), alive(foes)[0]);
       if (t) t.stunUntil = B.t + k.dur; break;
     }
@@ -1125,7 +1132,7 @@ function castUltimate(u, foes, mates) {
         const t = alive(foes)[Math.floor(B.rng() * Math.max(1, alive(foes).length))];
         if (t) { fxProjectile(u, t, "#c9a2ff", { dur: 560, size: 1.15, arc: 2.0, flicker: true, tex: "lantern" }); const d = dealDamage(u, t, pct);
           const low = alive(mates).reduce((a, b) => (a.hp / a.maxHp < b.hp / b.maxHp ? a : b), alive(mates)[0]);
-          if (low) heal(low, d * 0.5); } }
+          if (low) heal(low, d * 0.5, u); } }
       break;
     case "haste":
       for (const a of alive(mates)) { a.hasteUntil = B.t + k.dur; a.hasteMult = 1 + pct; a.energy = Math.min(BAL.energy_max, a.energy + k.energy); } break;
@@ -1157,7 +1164,7 @@ function unitAct(u) {
   // Aube : soigne si un allié est sous 65 %
   if (CLASSES[u.hero.cls].target === "smart") {
     const low = alive(mates).reduce((a, b) => (a.hp / a.maxHp < b.hp / b.maxHp ? a : b), alive(mates)[0]);
-    if (low && low.hp / low.maxHp < 0.65) { heal(low, u.atk * 1.1); fxBurst(low, "#7fe58a", 7); u.energy = Math.min(BAL.energy_max, u.energy + BAL.energy_per_attack); u.lungeT = 240; return; }
+    if (low && low.hp / low.maxHp < 0.65) { heal(low, u.atk * 1.1, u); fxBurst(low, "#7fe58a", 7); u.energy = Math.min(BAL.energy_max, u.energy + BAL.energy_per_attack); u.lungeT = 240; return; }
   }
   const t = pickTarget(u, foes);
   if (!t) return;
@@ -1190,6 +1197,23 @@ function battleTick(dt) {
   else if (B.t - B.waveStart >= BAL.battle_timeout_ms) endBattle(false, true);
 }
 
+function battleSummary() {
+  const max = Math.max(1, ...B.allies.map((a) => a.stDealt));
+  return `<div class="sumwrap"><b class="sumtitle">${STR.sum_title}</b>` + B.allies.map((a) => `
+    <div class="sumrow ${a.hp <= 0 ? "sumdead" : ""}">
+      <img src="./assets/portraits/${a.id}.jpg" alt="">
+      <div class="sumbars">
+        <div class="sumname">${a.hero.name.split(",")[0]}</div>
+        <div class="sumbar"><i style="width:${Math.round((a.stDealt / max) * 100)}%"></i></div>
+      </div>
+      <div class="sumnums">
+        <span>⚔ <b>${fmt(a.stDealt)}</b> ${STR.sum_dealt}</span>
+        <span>💔 <b>${fmt(a.stTaken)}</b> ${STR.sum_taken}</span>
+        <span>💚 <b>${fmt(a.stHealed)}</b> ${STR.sum_heal}</span>
+      </div>
+    </div>`).join("") + `</div>`;
+}
+
 function endBattle(victory, timeout = false) {
   if (B.over) return;
   B.over = true; B.victory = victory;
@@ -1207,11 +1231,13 @@ function endBattle(victory, timeout = false) {
     html = `<h3 class="win">${STR.battle_victory}</h3>
       ${clearedChapter ? `<p class="chapter-clear">🏝 ${chapterName(chapterOf(idx).ch)} — ${STR.campaign_cleared}</p>` : ""}
       <p>${STR.battle_rewards} : +${fmt(gold)} 🪙${dia ? ` · +${dia} 💎` : ""}${first ? ` <span class="dim">(${STR.campaign_first_clear})</span>` : ""}</p>
+      ${battleSummary()}
       <button class="btn primary" id="bNext">${STR.battle_continue}</button>`;
   } else {
     html = `<h3 class="lose">${STR.battle_defeat}</h3>
       ${timeout ? `<p>${STR.battle_timeout}</p>` : ""}
       <p class="hint">${STR.battle_defeat_tip}</p>
+      ${battleSummary()}
       <button class="btn gold" id="bRetry">${STR.battle_retry}</button>
       <button class="btn ghost" id="bNext">${STR.battle_continue}</button>`;
   }

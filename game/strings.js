@@ -74,6 +74,11 @@ export const STR = {
   chef: "Chef",
   intro_ready: "En position !",
 
+  sum_title: "Résumé du combat",
+  sum_dealt: "infligés",
+  sum_taken: "subis",
+  sum_heal: "soins",
+
   battle_victory: "VICTOIRE !",
   battle_defeat: "Défaite…",
   battle_defeat_tip: "Améliorez vos héros, ajustez l'équipe ou réclamez votre butin AFK avant de retenter.",
