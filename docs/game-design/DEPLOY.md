@@ -13,6 +13,13 @@ même application fermée (plafond 12 h), calculés au retour du joueur.
 
 ## Contenu de la tranche verticale
 
+- **Signatures visuelles d'ultimes** : chaque capacité a sa chorégraphie 3D
+  liée à son nom (piliers solaires de Kaelis, dômes d'écorce de Bramble, onde
+  et bulles de Maëlle, plongeon + lames croisées de Sorren, tourelle déployée
+  de Grondin, lanternes vacillantes de Vespérine, vapeur de surchauffe de
+  Pip & Bogue, ronces jaillissantes de Sylvarende, pluie de traits célestes
+  de Théoline, onde temporelle concentrique de Nhyx) — le bandeau de texte au
+  nom de l'ultime a été retiré ; les créatures ont des effets par type.
 - **Deux modes d'ultimes** (bouton AUTO/MANUEL dans le bandeau de combat,
   choix mémorisé) : en AUTO les capacités partent seules ; en MANUEL une
   colonne de portraits à gauche montre la charge de chaque héros, le portrait
