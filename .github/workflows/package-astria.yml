@@ -22,7 +22,7 @@ jobs:
 
       - name: Récupérer et optimiser les assets générés
         run: |
-          pip3 install --quiet pillow
+          pip3 install --quiet pillow numpy
           cd game && python3 tools/fetch_assets.py
 
       - name: Construire le zip du jeu (logic.js + index.html à la racine)

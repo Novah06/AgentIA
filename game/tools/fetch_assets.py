@@ -146,3 +146,52 @@ for i, (cid, fn) in enumerate(CREATURE_CONCEPTS.items()):
     sheet3.paste(im.resize((256, 256)), ((i % 5) * 256, (i // 5) * 256))
 sheet3.save("tools/creatures_sheet.jpg", quality=85)
 print("creatures sheet ok")
+
+# --- sprites de VFX : détourage chromatique (magenta/vert) → PNG alpha pour les ultimes ---
+import numpy as np
+
+FX = {  # nom -> (fichier, couleur clé RGB)
+    "sigil_sun":   ("hf_20260715_130825_8dcfabb3-892d-4fda-9b97-dbb05d2652a6.png", (255, 0, 255)),
+    "burst_sun":   ("hf_20260715_130831_a8c1ae64-e4fe-4c7b-8324-a8c7d91b67dc.png", (255, 0, 255)),
+    "shield_leaf": ("hf_20260715_130832_f2086052-08c6-4820-ba77-cf8146649291.png", (255, 0, 255)),
+    "wave":        ("hf_20260715_130834_d00bcb7d-028e-46e1-b9fa-a70bae9b9278.png", (255, 0, 255)),
+    "slash":       ("hf_20260715_130837_bd7ad9d4-3beb-4a96-b706-aa4634841cda.png", (255, 0, 255)),
+    "smoke":       ("hf_20260715_130840_d3b921f6-da17-44b9-93d9-781a8e254f1f.png", (255, 0, 255)),
+    "lantern":     ("hf_20260715_130843_b5aaaf88-a586-4847-8a65-69b4c17b42fc.png", (0, 255, 0)),
+    "root":        ("hf_20260715_130902_313e5d8d-1f0e-4c80-b0d1-aa5e281d9fd0.png", (255, 0, 255)),
+    "petal":       ("hf_20260715_130905_118392ba-8418-4316-9a6d-e53a604fa745.png", (0, 255, 0)),
+    "arrow":       ("hf_20260715_130909_d3071c77-8f2a-453f-a66d-bf393d5ea84e.png", (255, 0, 255)),
+    "clock":       ("hf_20260715_130912_cff153ca-43c2-4b5b-a67a-d77ba2025b84.png", (255, 0, 255)),
+    "gear":        ("hf_20260715_130915_dd197d17-c1a4-4a60-a858-9b22609313ab.png", (255, 0, 255)),
+    "ring_water":  ("hf_20260715_130918_90b2dd6b-4024-464f-beed-fb065fa5e275.png", (255, 0, 255)),
+    "muzzle":      ("hf_20260715_130920_9d775fa0-d81e-49ef-a430-6cf6c8230cae.png", (255, 0, 255)),
+}
+
+def chroma_key(im, key):
+    a = np.asarray(im.convert("RGB"), dtype=np.float32)
+    kr, kg, kb = key
+    dist = np.sqrt((a[..., 0] - kr) ** 2 + (a[..., 1] - kg) ** 2 + (a[..., 2] - kb) ** 2)
+    alpha = np.clip((dist - 70) / 90.0, 0, 1)
+    # anti-débordement de la couleur clé sur les bords
+    if key == (0, 255, 0):
+        a[..., 1] = np.minimum(a[..., 1], np.maximum(a[..., 0], a[..., 2]) + 12)
+    else:
+        m = np.maximum(a[..., 1], 1)
+        spill = (a[..., 0] > m) & (a[..., 2] > m)
+        a[..., 0] = np.where(spill, np.minimum(a[..., 0], a[..., 1] + 40), a[..., 0])
+        a[..., 2] = np.where(spill, np.minimum(a[..., 2], a[..., 1] + 40), a[..., 2])
+    out = np.dstack([a, alpha[..., None] * 255]).astype(np.uint8)
+    return Image.fromarray(out, "RGBA")
+
+os.makedirs("assets/fx", exist_ok=True)
+sheet_fx = Image.new("RGB", (7 * 200, 2 * 200), (40, 34, 70))
+for i, (name, (fn, key)) in enumerate(FX.items()):
+    p = f"assets/fx/{name}.png"
+    if not os.path.exists(p):
+        im = chroma_key(get(fn), key).resize((384, 384), Image.LANCZOS)
+        im.save(p, optimize=True)
+        print("fx", name, os.path.getsize(p) // 1024, "Ko")
+    tile = Image.open(p).convert("RGBA").resize((200, 200))
+    sheet_fx.paste(tile, ((i % 7) * 200, (i // 7) * 200), tile)
+sheet_fx.save("tools/fx_sheet.jpg", quality=88)
+print("fx sheet ok")
