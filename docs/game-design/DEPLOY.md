@@ -13,6 +13,12 @@ même application fermée (plafond 12 h), calculés au retour du joueur.
 
 ## Contenu de la tranche verticale
 
+- **Deux modes d'ultimes** (bouton AUTO/MANUEL dans le bandeau de combat,
+  choix mémorisé) : en AUTO les capacités partent seules ; en MANUEL une
+  colonne de portraits à gauche montre la charge de chaque héros, le portrait
+  s'entoure d'une aura dorée quand l'ultime est prêt et ne part qu'au tap.
+  Les ennemis restent toujours automatiques.
+
 - **Vagues et bestiaire** : chaque niveau se joue en 2 vagues (3 au niveau de
   boss). Les ennemis sont 6 créatures Brumées en 3D (Loup Brumé, Golem de Suie,
   Corbeau du Voile, Méduse d'Ombre, Aragne de Brume, Sanglier Cendreux), un

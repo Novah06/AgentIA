@@ -68,6 +68,9 @@ export const STR = {
 
   intro_vs: "VS",
   wave: "Vague",
+  mode_auto: "AUTO",
+  mode_manual: "MANUEL",
+  mode_hint: "Ultimes : tapez le portrait quand il brille",
   chef: "Chef",
   intro_ready: "En position !",
 

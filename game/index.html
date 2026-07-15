@@ -150,6 +150,27 @@ h3{margin:4px 0 10px}
 .bres-box .lose{color:var(--dim);font-size:24px;margin:0 0 8px}
 .chapter-clear{color:var(--teal);font-weight:700}
 #dev{position:fixed;top:4px;left:4px;color:#0f0;font:12px monospace;display:none;z-index:99}
+/* ---- mode manuel : pictos d'ultimes à gauche ---- */
+#bSkills{position:absolute;left:8px;top:50%;transform:translateY(-50%);display:none;
+  flex-direction:column;gap:14px;z-index:8}
+#bSkills.on{display:flex}
+.skill-btn{position:relative;width:58px;background:none;border:none;padding:0;cursor:pointer;
+  -webkit-tap-highlight-color:transparent}
+.skill-btn img{width:56px;height:56px;border-radius:50%;object-fit:cover;display:block;
+  border:2px solid #55507e;filter:grayscale(.5) brightness(.75);transition:filter .25s;box-shadow:0 3px 8px #000a}
+.skill-btn .sbar{display:block;height:5px;margin-top:5px;background:#000000a0;border-radius:3px;overflow:hidden;
+  border:1px solid #00000060}
+.skill-btn .sbar b{display:block;height:100%;width:0;background:linear-gradient(90deg,#ffd76a,#f2c14e);
+  transition:width .12s linear}
+.skill-btn.ready img{filter:none;border-color:var(--gold);animation:aura 0.9s ease-in-out infinite}
+.skill-btn.ready::before{content:"";position:absolute;left:-4px;top:-4px;width:64px;height:64px;border-radius:50%;
+  border:2px solid #ffe9a8;opacity:.9;animation:auraRing 0.9s ease-in-out infinite;pointer-events:none}
+@keyframes aura{0%,100%{box-shadow:0 0 10px 3px #f2c14ecc}50%{box-shadow:0 0 24px 9px #f2c14e99}}
+@keyframes auraRing{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.12);opacity:.4}}
+.skill-btn.ready:active img{transform:scale(.92)}
+.skill-btn.dead{pointer-events:none}
+.skill-btn.dead img{filter:grayscale(1) brightness(.35)}
+.skill-btn.dead .sbar b{width:0!important}
 /* ---- intro de combat (5 biomes) ---- */
 .bintro{position:absolute;inset:0;z-index:6;overflow:hidden;background:#0b0a1f;
   display:flex;flex-direction:column;justify-content:center;align-items:center;gap:14px;
@@ -221,10 +242,11 @@ h3{margin:4px 0 10px}
 <div id="app"></div>
 <div id="battle">
   <div class="bbar"><b id="bTitle"></b><div style="display:flex;gap:8px">
-    <button id="bSpeed">×1</button><button id="bQuit">✕</button></div></div>
+    <button id="bMode">AUTO</button><button id="bSpeed">×1</button><button id="bQuit">✕</button></div></div>
   <div id="bStage">
     <canvas id="b3dCanvas"></canvas>
     <canvas id="bCanvas"></canvas>
+    <div id="bSkills"></div>
   </div>
   <div id="bResult"></div>
 </div>

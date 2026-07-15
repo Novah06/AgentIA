@@ -40,7 +40,7 @@ function defaultState() {
     pityLeg: 0, totalPulls: 0, gotNhyx: false,
     quests: { date: todayKey(), prog: {}, claimed: {} },
     login: { idx: 0, last: "" },
-    tuto: 0, attempts: 0,
+    tuto: 0, attempts: 0, ultMode: "auto",
   };
 }
 let S = load();
@@ -719,6 +719,7 @@ function startBattle(stageIdx) {
   B.use3D = !!T && [...ids].every((id) => MODELS[id]) && init3D();
   if (B.use3D) build3DScene();
   spawnWave(0);
+  buildSkillsPanel();
   buildIntro();
   document.getElementById("bTitle").textContent =
     `${STR.campaign_chapter} ${chapterOf(stageIdx).ch + 1} — ${STR.campaign_stage} ${chapterOf(stageIdx).st + 1}`;
@@ -860,7 +861,9 @@ function castUltimate(u, foes, mates) {
 function unitAct(u) {
   const foes = u.side === "ally" ? B.enemies : B.allies;
   const mates = u.side === "ally" ? B.allies : B.enemies;
-  if (u.energy >= BAL.energy_max) { castUltimate(u, foes, mates); u.lungeT = 240; return; }
+  if (u.energy >= BAL.energy_max && (u.side === "enemy" || S.ultMode !== "manual")) {
+    castUltimate(u, foes, mates); u.lungeT = 240; return;
+  }
   // Aube : soigne si un allié est sous 65 %
   if (CLASSES[u.hero.cls].target === "smart") {
     const low = alive(mates).reduce((a, b) => (a.hp / a.maxHp < b.hp / b.maxHp ? a : b), alive(mates)[0]);
@@ -928,6 +931,40 @@ function endBattle(victory, timeout = false) {
   const retry = document.getElementById("bRetry");
   if (retry) retry.onclick = () => startBattle(idx);
 }
+function buildSkillsPanel() {
+  const sk = document.getElementById("bSkills");
+  sk.innerHTML = B.allies.map((u, i) =>
+    `<button class="skill-btn" data-si="${i}" title="${u.hero.ultName}">
+       <img src="./assets/portraits/${u.id}.jpg" alt="">
+       <i class="sbar"><b></b></i>
+     </button>`).join("");
+  sk.querySelectorAll(".skill-btn").forEach((btn) => btn.addEventListener("click", () => {
+    const u = B && B.allies[+btn.dataset.si];
+    if (!B || B.over || B.introT > 0 || S.ultMode !== "manual") return;
+    if (!u || u.hp <= 0 || u.energy < BAL.energy_max || u.stunUntil > B.t) return;
+    castUltimate(u, B.enemies, B.allies);
+    u.lungeT = 240;
+  }));
+  updateModeUI();
+}
+
+function updateModeUI() {
+  const manual = S.ultMode === "manual";
+  document.getElementById("bMode").textContent = manual ? STR.mode_manual : STR.mode_auto;
+  document.getElementById("bSkills").classList.toggle("on", manual && !!B);
+}
+
+function refreshSkillsPanel() {
+  const btns = document.querySelectorAll("#bSkills .skill-btn");
+  btns.forEach((btn) => {
+    const u = B.allies[+btn.dataset.si];
+    if (!u) return;
+    btn.querySelector(".sbar b").style.width = Math.min(100, (u.energy / BAL.energy_max) * 100) + "%";
+    btn.classList.toggle("ready", u.hp > 0 && u.energy >= BAL.energy_max);
+    btn.classList.toggle("dead", u.hp <= 0);
+  });
+}
+
 function closeBattle() {
   if (B && B.fxList && B.t3) for (const f of B.fxList) { B.t3.scene.remove(f.m); f.m.material.dispose(); }
   if (B && B.t3) B.t3.scene.traverse((o) => {
@@ -935,6 +972,7 @@ function closeBattle() {
   });
   B = null;
   document.querySelectorAll(".bintro").forEach((e) => e.remove());
+  document.getElementById("bSkills").classList.remove("on");
   document.getElementById("battle").classList.remove("open");
 }
 
@@ -1109,6 +1147,7 @@ function frame(now) {
     B.floaters = B.floaters.filter((f) => f.age < 900);
     if (B.banner) { B.banner.t -= real; if (B.banner.t <= 0) B.banner = null; }
     if (B.flash) { B.flash.t -= real; if (B.flash.t <= 0) B.flash = null; }
+    if (S.ultMode === "manual") refreshSkillsPanel();
   }
   if (B) renderBattle();
   if (devMode) {
@@ -1158,6 +1197,12 @@ function render() {
 }
 
 /* boutons de l'écran de combat */
+document.getElementById("bMode").addEventListener("click", () => {
+  S.ultMode = S.ultMode === "manual" ? "auto" : "manual";
+  save();
+  updateModeUI();
+  if (S.ultMode === "manual") toast(STR.mode_hint);
+});
 document.getElementById("bSpeed").addEventListener("click", (e) => {
   if (!B) return;
   B.speed = B.speed === 1 ? 2 : 1;
