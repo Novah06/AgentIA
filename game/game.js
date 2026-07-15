@@ -434,6 +434,20 @@ for (const b of BIOMES) { const im = new Image(); im.src = `./assets/biomes/${b}
 let T = null;            // module three vendorisé
 let three = null;        // { renderer, texCache }
 const MODELS = {};       // heroId -> Group normalisé (hauteur 1, pieds à y=0) | null si échec
+const CAM = { pos: [0, 6.8, 12.6], look: [0, 0.5, -2.6] };
+function fxTrailAt(pos, hex) {
+  if (!fxOn() || B.fxList.length > 140) return;
+  fxGeo();
+  const m = new T.Mesh(FXGEO.sphere, fxMat(hex, 0.7));
+  m.scale.setScalar(0.9);
+  m.position.copy(pos);
+  B.t3.scene.add(m);
+  B.fxList.push({ kind: "trail", m, t: 0, dur: 330 });
+}
+function fxShake(amp, dur = 450) {
+  if (!B) return;
+  if (!B.shake || amp * (B.shake.t / B.shake.dur) < amp) B.shake = { t: dur, dur, amp };
+}
 const HERO_H = { bramble: 1.9, pipbogue: 1.4, grondin: 1.35,
   brume_loup: 1.1, brume_golem: 1.8, brume_corbeau: 1.1, brume_meduse: 1.25,
   brume_aragne: 1.0, brume_sanglier: 1.15,
@@ -500,8 +514,8 @@ function build3DScene() {
   const scene = new T.Scene();
   scene.fog = new T.Fog(0x241a4e, 15, 34);
   const camera = new T.PerspectiveCamera(52, 1, 0.1, 100);
-  camera.position.set(0, 6.8, 12.6);
-  camera.lookAt(0, 0.5, -2.6);
+  camera.position.set(CAM.pos[0], CAM.pos[1], CAM.pos[2]);
+  camera.lookAt(CAM.look[0], CAM.look[1], CAM.look[2]);
   scene.add(new T.HemisphereLight(0xfff6e0, 0x4a3a68, 1.9));
   const dir = new T.DirectionalLight(0xffe8c0, 2.1);
   dir.position.set(3, 7, 4);
@@ -783,6 +797,8 @@ function fxUpdate(dt) {
         f.a.y + (f.b.y - f.a.y) * p + Math.sin(p * Math.PI) * f.arc,
         f.a.z + (f.b.z - f.a.z) * p);
       if (f.flicker) f.m.material.opacity = 0.6 + 0.4 * Math.sin(f.t / 40);
+      f.trailT = (f.trailT || 0) + dt;
+      while (f.trailT > 45) { f.trailT -= 45; fxTrailAt(f.m.position, f.hex || "#ffe9a8"); }
     } else if (f.kind === "part") {
       f.m.position.set(f.x + f.vx * p * 0.4, f.y + f.vy * p * 0.4 - 0.5 * p * p, f.z + f.vz * p * 0.4);
       f.m.material.opacity = 0.9 * (1 - p);
@@ -810,13 +826,20 @@ function fxUpdate(dt) {
     } else if (f.kind === "ringv") {
       f.m.scale.setScalar(1 + f.max * p);
       f.m.material.opacity = 0.9 * (1 - p);
+    } else if (f.kind === "trail") {
+      f.m.scale.setScalar(0.9 * (1 - p * 0.85));
+      f.m.material.opacity = 0.7 * (1 - p);
     } else if (f.kind === "spr") {
       const sIn = 0.35 + 0.65 * Math.min(1, p * 3.5);
       const sc = f.size * sIn * (1 + f.grow * p);
       f.m.scale.set(f.flipX ? -sc : sc, sc, 1);
       f.m.material.opacity = p < 0.15 ? p / 0.15 : p > 0.62 ? (1 - p) / 0.38 : 1;
       let yy = f.y0 + f.rise * p;
-      if (f.fall) yy = f.fall.from + (f.fall.to - f.fall.from) * Math.min(1, p * 1.25);
+      if (f.fall) {
+        yy = f.fall.from + (f.fall.to - f.fall.from) * Math.min(1, p * 1.25);
+        f.trailT = (f.trailT || 0) + dt;
+        while (f.trailT > 55) { f.trailT -= 55; fxTrailAt(f.m.position, "#ffe9a8"); }
+      }
       f.m.position.y = yy;
       if (f.orbit) {
         const ang = f.orbit.a0 + f.orbit.turns * Math.PI * 2 * p;
@@ -1040,7 +1063,7 @@ function dealDamage(att, dif, pct, opts = {}) {
   let dmg = att.atk * pct * counterMult(att, dif) - dif.def * BAL.def_soak;
   dmg = Math.max(att.atk * pct * BAL.min_dmg_pct, dmg);
   const crit = B.rng() < BAL.crit_chance;
-  if (crit) dmg *= BAL.crit_mult;
+  if (crit) { dmg *= BAL.crit_mult; if (B.use3D) fxShake(0.09, 240); }
   if (dif.markUntil > B.t) dmg *= 1 + dif.markPct;
   dmg = Math.round(dmg);
   if (dif.shieldUntil > B.t && dif.shield > 0) {
@@ -1071,6 +1094,8 @@ function castUltimate(u, foes, mates) {
   const k = u.hero.ult, pct = k.pct;
   u.castPulse = performance.now() + 900;
   fxUlt(u, k, foes, mates);
+  const SHAKE_ULT = { kaelis: 0.34, nhyx: 0.3, sorren: 0.24, sylvarende: 0.22, theoline: 0.18 };
+  fxShake(u.boss ? 0.45 : SHAKE_ULT[u.id] || (u.side === "enemy" ? 0.18 : 0.13), u.boss ? 650 : 480);
   switch (k.kind) {
     case "aoe_blind":
       for (const e of alive(foes)) { dealDamage(u, e, pct); e.blindUntil = B.t + k.dur; } break;
@@ -1356,6 +1381,16 @@ function renderBattle() {
   const W = canvas.clientWidth, H = canvas.clientHeight;
   if (B.use3D && three && B.t3) {
     update3D(W, H);
+    const cam = B.t3.camera;
+    if (B.shake && B.shake.t > 0) {
+      const a = B.shake.amp * (B.shake.t / B.shake.dur);
+      cam.position.set(CAM.pos[0] + (Math.random() - 0.5) * 2 * a,
+        CAM.pos[1] + (Math.random() - 0.5) * 1.3 * a,
+        CAM.pos[2] + (Math.random() - 0.5) * a);
+    } else {
+      cam.position.set(CAM.pos[0], CAM.pos[1], CAM.pos[2]);
+    }
+    cam.lookAt(CAM.look[0], CAM.look[1], CAM.look[2]);
     three.renderer.render(B.t3.scene, B.t3.camera);
     ctx.clearRect(0, 0, W, H);
     for (const u of [...B.enemies, ...B.allies]) drawGauges(u);
@@ -1412,6 +1447,7 @@ function frame(now) {
     B.floaters = B.floaters.filter((f) => f.age < 900);
     if (B.banner) { B.banner.t -= real; if (B.banner.t <= 0) B.banner = null; }
     if (B.flash) { B.flash.t -= real; if (B.flash.t <= 0) B.flash = null; }
+    if (B.shake) { B.shake.t -= real; if (B.shake.t <= 0) B.shake = null; }
     if (S.ultMode === "manual") refreshSkillsPanel();
   }
   if (B) renderBattle();
