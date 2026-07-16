@@ -195,3 +195,18 @@ for i, (name, (fn, key)) in enumerate(FX.items()):
     sheet_fx.paste(tile, ((i % 7) * 200, (i // 7) * 200), tile)
 sheet_fx.save("tools/fx_sheet.jpg", quality=88)
 print("fx sheet ok")
+
+# --- fonds narratifs des vignettes d'histoire ---
+STORY_IMGS = {
+    "fracture":  "hf_20260715_154243_952b266a-389f-40fd-950c-cff74d8f29fb.png",
+    "cicatrice": "hf_20260715_154246_d8eb483a-4d91-4d1e-97dc-07d247ae47a5.png",
+}
+os.makedirs("assets/story", exist_ok=True)
+for sid, fn in STORY_IMGS.items():
+    p = f"assets/story/{sid}.jpg"
+    if os.path.exists(p):
+        continue
+    im = get(fn)
+    im = im.resize((720, round(im.height * 720 / im.width)), Image.LANCZOS)
+    im.save(p, quality=80, optimize=True)
+    print("story", sid, os.path.getsize(p) // 1024, "Ko")

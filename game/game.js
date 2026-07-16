@@ -1,5 +1,5 @@
 // ASTRIA — Les Éclats du Ciel Brisé : client de jeu (solo, mobile-first).
-import { STR } from "./strings.js";
+import { STR, STORY } from "./strings.js";
 import { HEROES, CREATURES, BOSS_IDS, creatureById, FACTIONS, RARITIES, CLASSES, BAL, BIOMES, biomeOf, heroById, chapterOf } from "./data.js";
 
 /* ---------------------------------- utils --------------------------------- */
@@ -40,7 +40,7 @@ function defaultState() {
     pityLeg: 0, totalPulls: 0, gotNhyx: false,
     quests: { date: todayKey(), prog: {}, claimed: {} },
     login: { idx: 0, last: "" },
-    tuto: 0, attempts: 0, ultMode: "auto",
+    tuto: 0, attempts: 0, ultMode: "auto", story: {},
   };
 }
 let S = load();
@@ -408,6 +408,7 @@ function openModal(html, after) {
 function closeModal() { document.querySelectorAll(".modal-wrap").forEach((m) => m.remove()); }
 
 function summonResults(res) {
+  if (res.some((r) => r.isNew && r.hero.id === "nhyx")) showStory("nhyx");
   openModal(`<h3>${STR.summon_title}</h3>
     <div class="sgrid">${res.map((r) => `
       <div class="scard" style="--rar:${RARITIES[r.hero.rarity].color}">
@@ -418,6 +419,49 @@ function summonResults(res) {
       </div>`).join("")}</div>
     <button class="btn primary" id="sAgain">${STR.summon_again}</button>`,
     () => { document.getElementById("sAgain").onclick = () => { const r = doSummon(res.length); render(); if (r) summonResults(r); }; });
+}
+
+/* ------------------------- vignettes narratives ------------------------- */
+
+const STORY_BG = {
+  keyart: "./assets/keyart.jpg", fracture: "./assets/story/fracture.jpg",
+  cicatrice: "./assets/story/cicatrice.jpg",
+  zenith: "./assets/biomes/zenith.jpg", sylve: "./assets/biomes/sylve.jpg",
+  forge: "./assets/biomes/forge.jpg", maree: "./assets/biomes/maree.jpg",
+  voile: "./assets/biomes/voile.jpg",
+};
+
+function showStory(id, cb) {
+  const sc = STORY[id];
+  if (!sc || S.story[id]) { if (cb) cb(); return; }
+  S.story[id] = 1;
+  save();
+  const wrap = el("div", "storyv");
+  wrap.innerHTML = `<img class="svbg" src="${STORY_BG[sc.bg] || STORY_BG.keyart}" alt="">
+    <div class="svshade"></div>
+    <div class="svpanel"><h4>${sc.title}</h4><p class="svin"></p>
+    <span class="svtap">${STR.story_tap}</span></div>`;
+  document.body.appendChild(wrap);
+  let page = 0;
+  const pEl = wrap.querySelector("p");
+  const put = () => { pEl.classList.remove("svin"); void pEl.offsetWidth; pEl.textContent = sc.pages[page]; pEl.classList.add("svin"); };
+  put();
+  wrap.addEventListener("click", () => {
+    page++;
+    if (page < sc.pages.length) { put(); return; }
+    wrap.classList.add("svout");
+    setTimeout(() => { wrap.remove(); if (cb) cb(); }, 360);
+  });
+}
+
+// vignette d'avant-combat : premier combat, ou arrivée dans une nouvelle région
+function preBeat(idx) {
+  const { ch, st } = chapterOf(idx);
+  let id = null;
+  if (idx === 0) id = "first_fight";
+  else if (st === 0 && idx === S.stage)
+    id = ch >= 5 ? "enter_cicatrice" : ["", "enter_sylve", "enter_forge", "enter_maree", "enter_voile"][ch] || null;
+  return id && !S.story[id] ? id : null;
 }
 
 /* --------------------------------- combat --------------------------------- */
@@ -982,6 +1026,8 @@ function makeUnit(hero, side, stats, opts = {}) {
 
 function startBattle(stageIdx) {
   if (!S.team.length) { toast(STR.team_edit); setScreen("heroes"); return; }
+  const beat = preBeat(stageIdx);
+  if (beat) { showStory(beat, () => startBattle(stageIdx)); return; }
   S.attempts++;
   const rng = mulberry32(stageIdx * 104729 + S.attempts * 31);
   const allies = S.team.map((id) => makeUnit(heroById(id), "ally", heroStats(id)));
@@ -1220,6 +1266,7 @@ function endBattle(victory, timeout = false) {
   const res = document.getElementById("bResult");
   const idx = B.stageIdx;
   let html;
+  let afterBeat = null;
   if (victory) {
     const first = idx === S.stage;
     const gold = first ? BAL.reward_gold(idx) : BAL.reward_gold_replay(idx);
@@ -1228,12 +1275,20 @@ function endBattle(victory, timeout = false) {
     if (first) { dia = BAL.reward_diamonds_first; S.diamonds += dia; S.stage++; }
     quest("win3"); save();
     const clearedChapter = first && chapterOf(idx).st === BAL.stages_per_chapter - 1;
+    if (first && idx === 0 && !S.story.first_victory) afterBeat = "first_victory";
+    if (clearedChapter) {
+      const bch = chapterOf(idx).ch;
+      const bid = bch >= 5 ? "boss_cicatrice"
+        : ["boss_zenith", "boss_sylve", "boss_forge", "boss_maree", "boss_voile"][bch];
+      if (!S.story[bid]) afterBeat = bid;
+    }
     html = `<h3 class="win">${STR.battle_victory}</h3>
       ${clearedChapter ? `<p class="chapter-clear">🏝 ${chapterName(chapterOf(idx).ch)} — ${STR.campaign_cleared}</p>` : ""}
       <p>${STR.battle_rewards} : +${fmt(gold)} 🪙${dia ? ` · +${dia} 💎` : ""}${first ? ` <span class="dim">(${STR.campaign_first_clear})</span>` : ""}</p>
       ${battleSummary()}
       <button class="btn primary" id="bNext">${STR.battle_continue}</button>`;
   } else {
+    if (!S.story.first_defeat) afterBeat = "first_defeat";
     html = `<h3 class="lose">${STR.battle_defeat}</h3>
       ${timeout ? `<p>${STR.battle_timeout}</p>` : ""}
       <p class="hint">${STR.battle_defeat_tip}</p>
@@ -1243,7 +1298,10 @@ function endBattle(victory, timeout = false) {
   }
   res.innerHTML = `<div class="bres-box">${html}</div>`;
   res.classList.add("open");
-  document.getElementById("bNext").onclick = () => { closeBattle(); render(); };
+  document.getElementById("bNext").onclick = () => {
+    closeBattle(); render();
+    if (afterBeat) showStory(afterBeat);
+  };
   const retry = document.getElementById("bRetry");
   if (retry) retry.onclick = () => startBattle(idx);
 }
@@ -1540,6 +1598,10 @@ document.getElementById("bQuit").addEventListener("click", () => { closeBattle()
 /* ------------------------------- onboarding ------------------------------- */
 
 function welcome() {
+  showStory("prologue", () => welcomeModal());
+}
+
+function welcomeModal() {
   openModal(`<h3>${STR.welcome_title}</h3><p>${STR.welcome_body}</p>
     <button class="btn primary" id="wGo">${STR.welcome_cta}</button>`, () => {
     document.getElementById("wGo").onclick = () => {

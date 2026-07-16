@@ -140,6 +140,75 @@ export const STR = {
 
   rar_eveille: "Éveillé", rar_astral: "Astral", rar_legendaire: "Légendaire", rar_mythique: "Mythique",
 
+  story_tap: "Toucher pour continuer ▸",
+
   ch_names: ["Le Zénith Doré", "La Sylve Suspendue", "Les Forges d'Écume", "L'Archipel des Marées", "Le Voile Ombral"],
   ch_endless: "La Cicatrice",
+};
+
+// L'histoire de la Reconquête — racontée par vignettes aux moments clés.
+export const STORY = {
+  prologue: { bg: "fracture", title: "La Fracture", pages: [
+    "Il y a mille ans, une étoile veillait sur Astria. On l'appelait le Cœur Céleste, et tant qu'elle brillait, les îles n'avaient jamais connu la nuit.",
+    "Puis vint la Fracture. En un battement de cil, le Cœur vola en éclats, le continent se déchira, et les morceaux du monde restèrent suspendus dans un océan de nuages.",
+    "Dans le vide laissé par l'étoile s'est glissée la Brume — une marée d'ombre qui dévore les îles et corrompt tout ce qu'elle touche. Vous êtes l'Astrelien, dernier porteur de la Boussole d'Aube. À vous de rallumer le ciel.",
+  ] },
+  first_fight: { bg: "zenith", title: "Premiers pas au Zénith", pages: [
+    "Le Zénith Doré, joyau de Solacia, n'est plus qu'un champ de blé cerné d'ombres. La Brume a senti la Boussole : ses créatures approchent.",
+    "Kaelis dégaine sa lame et se place devant vous. « Reste derrière moi, Astrelien. La lumière n'a pas dit son dernier mot. »",
+  ] },
+  first_victory: { bg: "zenith", title: "La Boussole vibre", pages: [
+    "Les Brumés se dissipent en volutes violettes. Dans votre main, la Boussole d'Aube frémit : quelque part au bout de cette île, un éclat du Cœur Céleste attend d'être rallumé.",
+  ] },
+  boss_zenith: { bg: "zenith", title: "Le Zénith rallumé", pages: [
+    "Le Dévoreur s'effondre dans un râle de suie, et le silence retombe sur la citadelle. Alors, du sommet de la plus haute tour, l'éclat d'Astérite s'embrase.",
+    "Pour la première fois depuis mille ans, le Zénith Doré brille dans le ciel d'Astria. Au loin, par-delà la mer de nuages, les racines pendantes de la Sylve Suspendue vous appellent.",
+  ] },
+  enter_sylve: { bg: "sylve", title: "La Sylve Suspendue", pages: [
+    "Les forêts géantes de Verdaine poussent à l'envers, racines offertes au vide. Mais sous la canopée, plus un chant d'oiseau : la Brume a fait son nid dans les branches.",
+    "Les feuilles murmurent sur votre passage. Les dryades dorment d'un sommeil qui n'est pas le leur. Réveillez-les.",
+  ] },
+  boss_sylve: { bg: "sylve", title: "La forêt respire", pages: [
+    "Le Dévoreur recule dans un froissement de soie et d'escarbilles, et la forêt tout entière respire à nouveau. La sève dorée remonte dans les troncs — l'éclat de la Sylve rejoint le ciel.",
+    "Vers l'est, des colonnes de vapeur froide montent des Forges d'Écume. Là-bas, les machines des Karvok se sont tues.",
+  ] },
+  enter_forge: { bg: "forge", title: "Les Forges d'Écume", pages: [
+    "Les geysers crachent une vapeur sans chaleur, les dirigeables gisent au sol : la Brume a éteint les fourneaux des nains-mécaniciens.",
+    "Dans les ateliers déserts, une seule chaudière tiède demeure — celle qu'un inventeur têtu refuse de laisser mourir.",
+  ] },
+  boss_forge: { bg: "forge", title: "Les fourneaux repartent", pages: [
+    "Le Dévoreur se disloque dans une pluie d'étincelles, et les fourneaux se rallument un à un, comme des cœurs qui repartent. L'éclat des Forges rejoint le ciel.",
+    "Restent les mers. Dites-moi, Astrelien… avez-vous remarqué ? L'Archipel des Marées a cessé de chanter.",
+  ] },
+  enter_maree: { bg: "maree", title: "L'Archipel des Marées", pages: [
+    "Les cascades tombent en silence dans le vide ; le palais de nacre est éteint. Le peuple de Nérisse a fui ses palais engloutis d'ombre.",
+    "Sur l'écume, pourtant, un chant très ancien affleure : les sirènes n'attendent qu'une aube pour reprendre leur berceuse.",
+  ] },
+  boss_maree: { bg: "maree", title: "Le chant des cascades", pages: [
+    "Le Dévoreur sombre dans la mer de nuages en recrachant la lumière volée. Les cascades se remettent à chanter — l'éclat des Marées s'élève.",
+    "Il ne reste qu'une terre avant la blessure du monde : le Voile Ombral, où vivent ceux qui ont appris à marcher dans la Brume.",
+  ] },
+  enter_voile: { bg: "voile", title: "Le Voile Ombral", pages: [
+    "Nyxara. Des cristaux violets, des lanternes d'âmes, une élégance de deuil. Ici, on ne combat pas l'ombre : on la porte.",
+    "Les exilés vous regardent passer sans un mot. Puis une voix, du haut d'une arche : « La Brume nous a tout pris. Prouve que ta lumière vaut mieux, Astrelien. »",
+  ] },
+  boss_voile: { bg: "voile", title: "Les lanternes s'embrasent", pages: [
+    "Le Dévoreur se dissout, et les lanternes du Voile se mettent à briller comme jamais. Même ici, au bord du gouffre, un éclat du Cœur monte vers le ciel.",
+    "Cinq îles brillent à nouveau. La Boussole d'Aube ne tremble plus : elle pointe droit vers la Cicatrice.",
+  ] },
+  enter_cicatrice: { bg: "cicatrice", title: "La Cicatrice", pages: [
+    "Le cœur mort de l'étoile. La gravité s'y perd, la réalité s'effrite en fragments, et la Brume y coule à sa source, intarissable.",
+    "C'est ici que tout a commencé. C'est ici que le ciel se gagne, bataille après bataille. Aussi loin que vous irez, Astria s'en souviendra.",
+  ] },
+  boss_cicatrice: { bg: "cicatrice", title: "Au bord de la blessure", pages: [
+    "Un Dévoreur de plus retourne au néant. Au-dessus de vous, le ciel compte ses étoiles retrouvées — et la Cicatrice, elle, n'en finit pas de saigner de la Brume. Continuez, Astrelien. Chaque victoire est une étoile de plus.",
+  ] },
+  first_defeat: { bg: "voile", title: "La Brume se referme", pages: [
+    "Vos héros reculent, et la Brume se referme sur l'île comme une marée noire. Mais la Boussole d'Aube bat toujours dans votre main : aucun Éveillé ne tombe tant qu'elle brille.",
+    "Renforcez votre équipe, invoquez de nouveaux alliés — puis revenez reprendre ce qui vous appartient.",
+  ] },
+  nhyx: { bg: "cicatrice", title: "L'Éclat Pur", pages: [
+    "L'invocation s'achève dans un silence d'étoile. Devant vous se tient Nhyx — un fragment du Cœur Céleste qui a pris forme pour marcher à vos côtés.",
+    "« Je me souviens de la lumière », dit l'Éclat d'une voix de verre. « Montre-moi pourquoi elle vaut la peine d'être rallumée. »",
+  ] },
 };

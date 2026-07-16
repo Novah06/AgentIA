@@ -22,3 +22,5 @@ concept_3d_x10,références de reconstruction 3D (1 par héros; corps entier fon
 model_x10,mesh GLB texturé par héros posé sur le terrain de combat 3D (assets/models/<id>.glb),3D static mesh,image_to_3d 10k tris texture 512 webp,GLB,STYLE FORMULA v1 via concept,generate
 creature_concept_x9,références 3D des créatures (aussi portraits en jeu assets/portraits/),static 2D concept,full-body creature reference white bg,1:1,STYLE FORMULA v1 (perspective 3D §8),generate
 creature_model_x9,meshs GLB des créatures et Dévoreurs (assets/models/),3D static mesh,image_to_3d 8-12k tris texture 512 webp,GLB,STYLE FORMULA v1 via concept,generate
+story_fracture,fond narratif du prologue (assets/story/fracture.jpg),static 2D background,shattering celestial star cataclysm,9:16,STYLE FORMULA v1,generate
+story_cicatrice,fond narratif de la Cicatrice et de l'éveil de Nhyx (assets/story/cicatrice.jpg),static 2D background,dead star core violet mist void,9:16,STYLE FORMULA v1,generate
