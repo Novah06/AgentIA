@@ -15,7 +15,7 @@ JOBS = {
     "nhyx":       "hf_20260713_083745_f6ebdfae-93dc-4c1e-a9a2-52b15ce29f6c.png",
 }
 BIOMES = {
-    "zenith": "hf_20260713_091702_d8a24023-1e03-45ec-b975-ac53fbbf5962.png",
+    "zenith": "hf_20260716_073503_5dbbdc05-2f33-429b-a76d-5581f485daf7.png",
     "sylve":  "hf_20260713_091706_931c8f41-35d1-4502-9da9-14756de417a4.png",
     "forge":  "hf_20260713_091709_11ba0def-6565-407e-bb7c-513d5fc0ee3f.png",
     "maree":  "hf_20260713_091723_f8948063-cb6f-4657-93e1-9ffaad891886.png",
