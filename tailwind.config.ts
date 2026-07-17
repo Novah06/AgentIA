@@ -24,6 +24,17 @@ const config: Config = {
         aria: '#00e5ff',
         nova: '#3dffb0',
         felix: '#f0c040',
+        // Palette Metria (studio d'avant-chiffrage) — dérivée du logo atelier
+        // (noir profond, orange ambré, gris), mais DA volontairement distincte.
+        studio: {
+          ink: '#0a0a0a',
+          coal: '#161616',
+          amber: '#e39a2e',
+          'amber-dark': '#c9821a',
+          gray: '#8b8b8b',
+          paper: '#f7f6f3',
+          line: '#e6e3dd',
+        },
       },
       fontFamily: {
         sans: ['var(--font-dm-sans)', 'system-ui', 'sans-serif'],
