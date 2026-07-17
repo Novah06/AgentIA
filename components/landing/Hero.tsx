@@ -48,8 +48,8 @@ export function Hero() {
 
           {/* CTAs */}
           <div className="mb-16 flex flex-wrap gap-4">
-            <Link href="/sign-up" className="btn-primary !text-base !px-7 !py-3.5">
-              Démarrer maintenant →
+            <Link href="#contact" className="btn-primary !text-base !px-7 !py-3.5">
+              Demander une démo →
             </Link>
             <Link href="#agents" className="btn-outline !text-base !px-7 !py-3.5">
               Découvrir les agents

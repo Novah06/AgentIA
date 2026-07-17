@@ -43,7 +43,7 @@ Schéma SQL Supabase dans [`lib/supabase/schema.sql`](lib/supabase/schema.sql). 
 ```
 app/
   page.tsx                  Site vitrine
-  sign-in, sign-up          Auth Clerk
+  sign-in                   Auth Clerk (comptes créés en interne, pas d'inscription publique)
   dashboard/                Espace client
     page.tsx                Tableau de bord
     aria, nova, felix       Pages chat agent

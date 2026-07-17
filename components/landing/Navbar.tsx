@@ -49,8 +49,8 @@ export function Navbar() {
           <Link href="/sign-in" className="btn-outline !px-5 !py-2 text-sm">
             Se connecter
           </Link>
-          <Link href="/sign-up" className="btn-primary !px-5 !py-2 text-sm">
-            Démarrer
+          <Link href="#contact" className="btn-primary !px-5 !py-2 text-sm">
+            Demander une démo
           </Link>
         </div>
 
@@ -95,8 +95,8 @@ export function Navbar() {
             <Link href="/sign-in" className="btn-outline !py-2.5 text-sm">
               Se connecter
             </Link>
-            <Link href="/sign-up" className="btn-primary !py-2.5 text-sm">
-              Démarrer
+            <Link href="#contact" className="btn-primary !py-2.5 text-sm">
+              Demander une démo
             </Link>
           </div>
         </nav>
