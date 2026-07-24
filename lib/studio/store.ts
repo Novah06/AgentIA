@@ -1,10 +1,15 @@
 import { randomUUID } from 'crypto';
 import { getSupabaseAdmin } from '@/lib/supabase/client';
 import type {
+  AnalysisResult,
   NewProjectInput,
   ProjectPatch,
+  SourceCategory,
+  SourceStatus,
+  StudioAnalysis,
   StudioDocument,
   StudioProject,
+  StudioSource,
 } from './types';
 
 /**
@@ -21,13 +26,22 @@ import type {
 type MemStore = {
   projects: Map<string, StudioProject>;
   docs: Map<string, StudioDocument & { data: Buffer }>;
+  sources: Map<string, StudioSource & { data: Buffer }>;
+  analyses: Map<string, StudioAnalysis>;
 };
 const globalStore = globalThis as unknown as { __studioMemStore?: MemStore };
 const mem: MemStore =
   globalStore.__studioMemStore ??
-  (globalStore.__studioMemStore = { projects: new Map(), docs: new Map() });
+  (globalStore.__studioMemStore = {
+    projects: new Map(),
+    docs: new Map(),
+    sources: new Map(),
+    analyses: new Map(),
+  });
 const memProjects = mem.projects;
 const memDocs = mem.docs;
+const memSources = mem.sources;
+const memAnalyses = mem.analyses;
 
 const STORAGE_BUCKET = 'studio-docs';
 
@@ -293,4 +307,247 @@ export async function getDocumentData(
     .download(row.storage_path);
   if (dlError || !blob) return null;
   return { doc: mapDocument(row), data: Buffer.from(await blob.arrayBuffer()) };
+}
+
+/* ------------------------------------------------------------------ */
+/* Ressources IA (sources)                                             */
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function mapSource(row: any): StudioSource {
+  return {
+    id: row.id,
+    ownerId: row.owner_id,
+    category: row.category,
+    fileName: row.file_name,
+    fileType: row.file_type,
+    sizeBytes: row.size_bytes,
+    storagePath: row.storage_path,
+    extractedText: row.extracted_text,
+    status: row.status,
+    createdAt: row.created_at,
+  };
+}
+
+function mapAnalysis(row: any): StudioAnalysis {
+  return {
+    id: row.id,
+    projectId: row.project_id,
+    status: row.status,
+    model: row.model,
+    result: row.result,
+    error: row.error,
+    createdAt: row.created_at,
+  };
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+export async function listSources(ownerId: string): Promise<StudioSource[]> {
+  const sb = getSupabaseAdmin();
+  if (!sb) {
+    return [...memSources.values()]
+      .filter((s) => s.ownerId === ownerId)
+      .map(({ data: _data, ...source }) => source)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+  const { data, error } = await sb
+    .from('studio_sources')
+    .select('*')
+    .eq('owner_id', ownerId)
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapSource);
+}
+
+export async function addSource(
+  ownerId: string,
+  input: {
+    category: SourceCategory;
+    name: string;
+    type: string;
+    buffer: Buffer;
+    extractedText: string | null;
+    status: SourceStatus;
+  }
+): Promise<StudioSource> {
+  const sb = getSupabaseAdmin();
+  if (!sb) {
+    const source: StudioSource & { data: Buffer } = {
+      id: randomUUID(),
+      ownerId,
+      category: input.category,
+      fileName: input.name,
+      fileType: input.type || 'application/octet-stream',
+      sizeBytes: input.buffer.length,
+      storagePath: null,
+      extractedText: input.extractedText,
+      status: input.status,
+      createdAt: nowIso(),
+      data: input.buffer,
+    };
+    memSources.set(source.id, source);
+    const { data: _data, ...publicSource } = source;
+    return publicSource;
+  }
+  const path = `${ownerId}/_sources/${Date.now()}-${sanitizeFileName(input.name)}`;
+  const { error: uploadError } = await sb.storage
+    .from(STORAGE_BUCKET)
+    .upload(path, input.buffer, {
+      contentType: input.type || 'application/octet-stream',
+      upsert: false,
+    });
+  if (uploadError) throw new Error(`Storage : ${uploadError.message}`);
+  const { data, error } = await sb
+    .from('studio_sources')
+    .insert({
+      owner_id: ownerId,
+      category: input.category,
+      file_name: input.name,
+      file_type: input.type || 'application/octet-stream',
+      size_bytes: input.buffer.length,
+      storage_path: path,
+      extracted_text: input.extractedText,
+      status: input.status,
+    })
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return mapSource(data);
+}
+
+export async function updateSource(
+  ownerId: string,
+  id: string,
+  patch: { extractedText?: string | null; status?: SourceStatus }
+): Promise<StudioSource | null> {
+  const sb = getSupabaseAdmin();
+  if (!sb) {
+    const source = memSources.get(id);
+    if (!source || source.ownerId !== ownerId) return null;
+    if (patch.extractedText !== undefined) source.extractedText = patch.extractedText;
+    if (patch.status !== undefined) source.status = patch.status;
+    const { data: _data, ...publicSource } = source;
+    return publicSource;
+  }
+  const row: Record<string, unknown> = {};
+  if (patch.extractedText !== undefined) row.extracted_text = patch.extractedText;
+  if (patch.status !== undefined) row.status = patch.status;
+  const { data, error } = await sb
+    .from('studio_sources')
+    .update(row)
+    .eq('id', id)
+    .eq('owner_id', ownerId)
+    .select()
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? mapSource(data) : null;
+}
+
+export async function deleteSource(ownerId: string, id: string): Promise<boolean> {
+  const sb = getSupabaseAdmin();
+  if (!sb) {
+    const source = memSources.get(id);
+    if (!source || source.ownerId !== ownerId) return false;
+    memSources.delete(id);
+    return true;
+  }
+  const { data, error } = await sb
+    .from('studio_sources')
+    .delete()
+    .eq('id', id)
+    .eq('owner_id', ownerId)
+    .select()
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (data?.storage_path) {
+    await sb.storage.from(STORAGE_BUCKET).remove([data.storage_path]);
+  }
+  return !!data;
+}
+
+/** Contenu binaire d'une source (pour l'extraction IA à l'upload). */
+export async function getSourceData(
+  ownerId: string,
+  sourceId: string
+): Promise<{ source: StudioSource; data: Buffer } | null> {
+  const sb = getSupabaseAdmin();
+  if (!sb) {
+    const source = memSources.get(sourceId);
+    if (!source || source.ownerId !== ownerId) return null;
+    const { data, ...publicSource } = source;
+    return { source: publicSource, data };
+  }
+  const { data: row, error } = await sb
+    .from('studio_sources')
+    .select('*')
+    .eq('id', sourceId)
+    .eq('owner_id', ownerId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!row || !row.storage_path) return null;
+  const { data: blob, error: dlError } = await sb.storage
+    .from(STORAGE_BUCKET)
+    .download(row.storage_path);
+  if (dlError || !blob) return null;
+  return { source: mapSource(row), data: Buffer.from(await blob.arrayBuffer()) };
+}
+
+/* ------------------------------------------------------------------ */
+/* Analyses IA                                                         */
+
+export async function saveAnalysis(
+  projectId: string,
+  input: {
+    status: 'done' | 'error';
+    model: string | null;
+    result: AnalysisResult | null;
+    error: string | null;
+  }
+): Promise<StudioAnalysis> {
+  const sb = getSupabaseAdmin();
+  if (!sb) {
+    const analysis: StudioAnalysis = {
+      id: randomUUID(),
+      projectId,
+      status: input.status,
+      model: input.model,
+      result: input.result,
+      error: input.error,
+      createdAt: nowIso(),
+    };
+    memAnalyses.set(analysis.id, analysis);
+    return analysis;
+  }
+  const { data, error } = await sb
+    .from('studio_analyses')
+    .insert({
+      project_id: projectId,
+      status: input.status,
+      model: input.model,
+      result: input.result,
+      error: input.error,
+    })
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return mapAnalysis(data);
+}
+
+export async function getLatestAnalysis(projectId: string): Promise<StudioAnalysis | null> {
+  const sb = getSupabaseAdmin();
+  if (!sb) {
+    return (
+      [...memAnalyses.values()]
+        .filter((a) => a.projectId === projectId)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null
+    );
+  }
+  const { data, error } = await sb
+    .from('studio_analyses')
+    .select('*')
+    .eq('project_id', projectId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? mapAnalysis(data) : null;
 }

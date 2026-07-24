@@ -18,13 +18,13 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'OperisAI — Vos collaborateurs IA à temps plein',
+  title: "Metria — L'avant-chiffrage assisté par IA pour les stands et l'agencement",
   description:
-    "OperisAI déploie des agents IA autonomes qui prennent en charge vos postes comptables, RH et administratifs — 24h/24, sans onboarding, pour 70% du coût d'un salarié.",
-  metadataBase: new URL('https://operis-ai.fr'),
+    "À partir d'un brief, de plans et de rendus 3D, Metria prépare la liste des prestations, les questions manquantes, les risques et un préchiffrage à compléter.",
+  metadataBase: new URL('https://metria.fr'),
   openGraph: {
-    title: 'OperisAI',
-    description: 'Vos collaborateurs IA à temps plein dès demain.',
+    title: 'Metria',
+    description: "L'avant-chiffrage assisté par IA pour les stands et l'agencement.",
     type: 'website',
   },
 };

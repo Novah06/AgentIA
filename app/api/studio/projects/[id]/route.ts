@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getOwnerId } from '@/lib/studio/auth';
 import {
   deleteProject,
+  getLatestAnalysis,
   getProject,
   listDocuments,
   updateProject,
@@ -19,8 +20,11 @@ export async function GET(_req: Request, { params }: Params) {
   try {
     const project = await getProject(ownerId, params.id);
     if (!project) return NextResponse.json({ error: 'Projet introuvable' }, { status: 404 });
-    const documents = await listDocuments(project.id);
-    return NextResponse.json({ project, documents });
+    const [documents, analysis] = await Promise.all([
+      listDocuments(project.id),
+      getLatestAnalysis(project.id),
+    ]);
+    return NextResponse.json({ project, documents, analysis });
   } catch (err) {
     console.error('[studio/projects/:id] GET:', err);
     return NextResponse.json({ error: 'Lecture du projet impossible' }, { status: 500 });

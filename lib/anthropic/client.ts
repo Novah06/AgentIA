@@ -12,4 +12,6 @@ export function getAnthropic(): Anthropic {
   return cached;
 }
 
-export const ANTHROPIC_MODEL = 'claude-sonnet-4-20250514';
+export const ANTHROPIC_MODEL = 'claude-opus-4-8';
+
+export const hasAnthropicConfigured = () => !!process.env.ANTHROPIC_API_KEY;

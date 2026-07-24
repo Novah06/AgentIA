@@ -35,3 +35,36 @@ create table if not exists studio_documents (
 
 create index if not exists idx_studio_documents_project
   on studio_documents(project_id);
+
+-- Ressources IA : documents de référence du compte injectés dans les analyses
+create table if not exists studio_sources (
+  id uuid primary key default gen_random_uuid(),
+  owner_id text not null,
+  category text not null default 'autre'
+    check (category in ('ancien_dossier', 'fournisseur', 'regle_metier', 'autre')),
+  file_name text not null,
+  file_type text not null,
+  size_bytes integer not null default 0,
+  storage_path text,
+  extracted_text text,
+  status text not null default 'en_attente'
+    check (status in ('traite', 'en_attente', 'erreur')),
+  created_at timestamptz default now()
+);
+
+create index if not exists idx_studio_sources_owner
+  on studio_sources(owner_id, category);
+
+-- Analyses IA générées pour chaque projet
+create table if not exists studio_analyses (
+  id uuid primary key default gen_random_uuid(),
+  project_id uuid references studio_projects(id) on delete cascade,
+  status text not null check (status in ('done', 'error')),
+  model text,
+  result jsonb,
+  error text,
+  created_at timestamptz default now()
+);
+
+create index if not exists idx_studio_analyses_project
+  on studio_analyses(project_id, created_at desc);

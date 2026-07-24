@@ -5,7 +5,10 @@ import { notifyProjectsChanged } from '@/components/studio/StudioShell';
 import {
   PROJECT_STATUSES,
   STATUS_LABELS,
+  type AnalysisResult,
+  type Fiabilite,
   type ProjectStatus,
+  type StudioAnalysis,
   type StudioDocument,
   type StudioProject,
 } from '@/lib/studio/types';
@@ -17,9 +20,37 @@ const STATUS_ACTIVE: Record<ProjectStatus, string> = {
   termine: 'bg-studio-ink text-white',
 };
 
+const FIABILITE_BADGE: Record<Fiabilite, string> = {
+  confirme: 'bg-emerald-100 text-emerald-800',
+  estime: 'bg-amber-100 text-amber-800',
+  manquant: 'bg-red-100 text-red-700',
+};
+
+const FIABILITE_LABEL: Record<Fiabilite, string> = {
+  confirme: 'Confirmé',
+  estime: 'Estimé',
+  manquant: 'Manquant',
+};
+
+const URGENCE_BADGE: Record<string, string> = {
+  haute: 'bg-red-100 text-red-700',
+  moyenne: 'bg-amber-100 text-amber-800',
+  basse: 'bg-studio-paper text-studio-gray',
+};
+
+const RISQUE_BADGE: Record<string, string> = {
+  eleve: 'bg-red-100 text-red-700',
+  moyen: 'bg-amber-100 text-amber-800',
+  faible: 'bg-studio-paper text-studio-gray',
+};
+
 function formatSize(bytes: number) {
   if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} Mo`;
   return `${Math.max(1, Math.round(bytes / 1024))} Ko`;
+}
+
+function formatEur(value: number) {
+  return value.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' €';
 }
 
 function docIcon(fileType: string) {
@@ -33,8 +64,10 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [project, setProject] = useState<StudioProject | null>(null);
   const [documents, setDocuments] = useState<StudioDocument[]>([]);
+  const [analysis, setAnalysis] = useState<StudioAnalysis | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -48,6 +81,7 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
       const data = await res.json();
       setProject(data.project);
       setDocuments(data.documents ?? []);
+      setAnalysis(data.analysis ?? null);
     } catch {
       setError('Impossible de charger le projet.');
     }
@@ -57,6 +91,7 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
     setProject(null);
     setNotFound(false);
     setError(null);
+    setAnalyzing(false);
     load();
   }, [load]);
 
@@ -96,6 +131,23 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
     setUploading(false);
   }
 
+  async function runAnalysis() {
+    if (!project || analyzing) return;
+    setAnalyzing(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/studio/projects/${project.id}/analyze`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "L'analyse a échoué.");
+      setAnalysis(data.analysis);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "L'analyse a échoué.");
+      await load();
+    } finally {
+      setAnalyzing(false);
+    }
+  }
+
   if (notFound) {
     return (
       <div className="mx-auto max-w-3xl px-6 py-16">
@@ -123,7 +175,7 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
   ].filter(Boolean);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 px-6 py-12">
+    <div className="mx-auto max-w-4xl space-y-6 px-6 py-12">
       <header>
         <h1 className="text-3xl font-semibold tracking-tight">{project.name}</h1>
         {meta.length > 0 && (
@@ -209,24 +261,240 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
         )}
       </section>
 
-      <section className="rounded-xl border border-dashed border-studio-gray/40 bg-white p-6">
-        <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-studio-gray">
-          <span aria-hidden className="inline-block h-2 w-2 rounded-[2px] bg-studio-amber" />
-          Analyse IA
-        </h2>
-        <p className="text-sm leading-relaxed text-studio-gray">
-          À partir des documents du projet, l&apos;analyse générera : le résumé du dossier, la
-          liste des prestations probables, les questions à poser au client, les risques et un
-          préchiffrage en fourchette basé sur votre bibliothèque de prix.
-        </p>
-        <button
-          type="button"
-          disabled
-          className="mt-4 cursor-not-allowed rounded-lg bg-studio-ink/10 px-4 py-2.5 text-sm font-semibold text-studio-gray"
-        >
-          Lancer l&apos;analyse — disponible à la prochaine étape
-        </button>
+      <section className="rounded-xl border border-studio-line bg-white p-6">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-studio-gray">
+            <span aria-hidden className="inline-block h-2 w-2 rounded-[2px] bg-studio-amber" />
+            Analyse IA
+          </h2>
+          {analysis?.status === 'done' && !analyzing && (
+            <button
+              type="button"
+              onClick={runAnalysis}
+              className="rounded-lg border border-studio-line px-3 py-1.5 text-xs font-semibold transition-colors hover:border-studio-amber hover:text-studio-amber-dark"
+            >
+              Relancer l&apos;analyse
+            </button>
+          )}
+        </div>
+
+        {analyzing ? (
+          <div className="flex flex-col items-center gap-2 py-8 text-sm text-studio-gray">
+            <span
+              aria-hidden
+              className="h-6 w-6 animate-spin rounded-full border-2 border-studio-line border-t-studio-amber"
+            />
+            <p>Analyse en cours — lecture du brief, des plans et des rendus…</p>
+            <p className="text-xs">Cela peut prendre une à trois minutes.</p>
+          </div>
+        ) : analysis?.status === 'done' && analysis.result ? (
+          <>
+            <p className="mb-4 text-xs text-studio-gray">
+              Analyse du {new Date(analysis.createdAt).toLocaleString('fr-FR')} — chaque ligne est
+              une proposition à vérifier et corriger avant tout engagement.
+            </p>
+            <AnalysisView result={analysis.result} />
+          </>
+        ) : (
+          <div className="py-2">
+            <p className="mb-4 text-sm leading-relaxed text-studio-gray">
+              L&apos;analyse lit le brief, les plans et les rendus, puis produit : le résumé du
+              dossier, les prestations probables, les questions à poser au client, les risques et
+              un préchiffrage en fourchette basé sur votre bibliothèque de prix et vos ressources.
+            </p>
+            {analysis?.status === 'error' && analysis.error && (
+              <p className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+                Dernière tentative en échec : {analysis.error}
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={runAnalysis}
+              className="rounded-lg bg-studio-amber px-5 py-2.5 text-sm font-semibold text-studio-ink transition-colors hover:bg-studio-amber-dark"
+            >
+              Lancer l&apos;analyse IA
+            </button>
+          </div>
+        )}
       </section>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+
+function AnalysisView({ result }: { result: AnalysisResult }) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="mb-1.5 text-sm font-semibold">Résumé du projet</h3>
+        <p className="whitespace-pre-wrap text-sm leading-relaxed">{result.resume}</p>
+      </div>
+
+      {result.prestations.length > 0 && (
+        <div>
+          <h3 className="mb-2 text-sm font-semibold">
+            Prestations probables ({result.prestations.length})
+          </h3>
+          <div className="overflow-x-auto rounded-lg border border-studio-line">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-studio-paper text-xs uppercase tracking-wider text-studio-gray">
+                <tr>
+                  <th className="px-3 py-2 font-semibold">Famille</th>
+                  <th className="px-3 py-2 font-semibold">Désignation</th>
+                  <th className="px-3 py-2 font-semibold">Qté</th>
+                  <th className="px-3 py-2 font-semibold">Source</th>
+                  <th className="px-3 py-2 font-semibold">Fiabilité</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-studio-line">
+                {result.prestations.map((p, i) => (
+                  <tr key={i} className="align-top">
+                    <td className="whitespace-nowrap px-3 py-2 text-xs text-studio-gray">
+                      {p.famille}
+                    </td>
+                    <td className="px-3 py-2">
+                      {p.designation}
+                      {p.commentaire && (
+                        <span className="block text-xs text-studio-gray">{p.commentaire}</span>
+                      )}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2">
+                      {p.quantite !== null ? `${p.quantite} ${p.unite ?? ''}` : '—'}
+                    </td>
+                    <td className="px-3 py-2 text-xs text-studio-gray">{p.source}</td>
+                    <td className="px-3 py-2">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${FIABILITE_BADGE[p.fiabilite]}`}
+                      >
+                        {FIABILITE_LABEL[p.fiabilite]}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {result.questions.length > 0 && (
+        <div>
+          <h3 className="mb-2 text-sm font-semibold">
+            Questions à poser au client ({result.questions.length})
+          </h3>
+          <ul className="space-y-1.5">
+            {result.questions.map((q, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm">
+                <span
+                  className={`mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${URGENCE_BADGE[q.urgence] ?? URGENCE_BADGE.basse}`}
+                >
+                  {q.theme}
+                </span>
+                <span>{q.question}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {result.risques.length > 0 && (
+        <div>
+          <h3 className="mb-2 text-sm font-semibold">Risques ({result.risques.length})</h3>
+          <ul className="space-y-2">
+            {result.risques.map((r, i) => (
+              <li key={i} className="rounded-lg border border-studio-line p-3 text-sm">
+                <div className="flex items-start gap-2">
+                  <span
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${RISQUE_BADGE[r.niveau] ?? RISQUE_BADGE.faible}`}
+                  >
+                    {r.niveau === 'eleve' ? 'Élevé' : r.niveau === 'moyen' ? 'Moyen' : 'Faible'}
+                  </span>
+                  <span>{r.description}</span>
+                </div>
+                {(r.hypothese || r.action) && (
+                  <p className="mt-1.5 pl-1 text-xs text-studio-gray">
+                    {r.hypothese && <>Hypothèse retenue : {r.hypothese} </>}
+                    {r.action && <>— Action : {r.action}</>}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div>
+        <h3 className="mb-2 text-sm font-semibold">Préchiffrage — coût de revient HT</h3>
+        {result.prechiffrage.lignes.length > 0 && (
+          <div className="overflow-x-auto rounded-lg border border-studio-line">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-studio-paper text-xs uppercase tracking-wider text-studio-gray">
+                <tr>
+                  <th className="px-3 py-2 font-semibold">Désignation</th>
+                  <th className="px-3 py-2 font-semibold">Qté</th>
+                  <th className="px-3 py-2 font-semibold">Min</th>
+                  <th className="px-3 py-2 font-semibold">Max</th>
+                  <th className="px-3 py-2 font-semibold">Base</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-studio-line">
+                {result.prechiffrage.lignes.map((l, i) => (
+                  <tr key={i} className="align-top">
+                    <td className="px-3 py-2">
+                      {l.designation}
+                      <span
+                        className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-semibold ${FIABILITE_BADGE[l.fiabilite]}`}
+                      >
+                        {FIABILITE_LABEL[l.fiabilite]}
+                      </span>
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2">
+                      {l.quantite !== null ? `${l.quantite} ${l.unite ?? ''}` : '—'}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2">{formatEur(l.coutHtMin)}</td>
+                    <td className="whitespace-nowrap px-3 py-2">{formatEur(l.coutHtMax)}</td>
+                    <td className="px-3 py-2 text-xs text-studio-gray">{l.base}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t border-studio-line bg-studio-paper font-semibold">
+                  <td className="px-3 py-2" colSpan={2}>
+                    Total coût de revient HT
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2">
+                    {formatEur(result.prechiffrage.totalHtMin)}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2">
+                    {formatEur(result.prechiffrage.totalHtMax)}
+                  </td>
+                  <td />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )}
+        {result.prechiffrage.heures.length > 0 && (
+          <ul className="mt-3 flex flex-wrap gap-2 text-xs">
+            {result.prechiffrage.heures.map((h, i) => (
+              <li key={i} className="rounded-full border border-studio-line bg-white px-3 py-1">
+                <span className="font-semibold">{h.poste}</span> : {h.heuresMin}–{h.heuresMax} h
+              </li>
+            ))}
+          </ul>
+        )}
+        {result.prechiffrage.commentaire && (
+          <p className="mt-3 text-xs leading-relaxed text-studio-gray">
+            {result.prechiffrage.commentaire}
+          </p>
+        )}
+      </div>
+
+      <div className="rounded-lg bg-studio-paper p-4">
+        <h3 className="mb-1 text-sm font-semibold">Niveau de confiance</h3>
+        <p className="text-sm leading-relaxed text-studio-gray">{result.confianceGlobale}</p>
+      </div>
     </div>
   );
 }
