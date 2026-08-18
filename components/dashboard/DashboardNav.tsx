@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { UserButton } from '@clerk/nextjs';
 import { Logo } from '@/components/ui/Logo';
+import { isValidClerkPublishableKey } from '@/lib/auth';
 
 const LINKS = [
   { href: '/dashboard', label: 'Mes agents' },
@@ -12,7 +13,9 @@ const LINKS = [
 ];
 
 export function DashboardNav({ userName }: { userName?: string }) {
-  const [hasClerk] = useState(!!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
+  const [hasClerk] = useState(() =>
+    isValidClerkPublishableKey(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY)
+  );
 
   return (
     <header className="sticky top-0 z-40 border-b border-[rgba(0,229,255,0.08)] bg-bg-base/80 backdrop-blur-xl">

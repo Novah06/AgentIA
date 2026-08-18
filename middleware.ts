@@ -1,5 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
+import { hasClerkConfigured } from '@/lib/auth';
 
 const isProtectedRoute = createRouteMatcher([
   '/dashboard(.*)',
@@ -9,10 +10,7 @@ const isProtectedRoute = createRouteMatcher([
   '/api/studio(.*)',
 ]);
 
-const hasClerkKeys =
-  !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && !!process.env.CLERK_SECRET_KEY;
-
-export default hasClerkKeys
+export default hasClerkConfigured
   ? clerkMiddleware(async (auth, req) => {
       if (isProtectedRoute(req)) {
         await auth.protect();

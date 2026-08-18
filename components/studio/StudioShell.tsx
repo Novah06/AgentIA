@@ -11,7 +11,11 @@ import {
   type StudioProject,
 } from '@/lib/studio/types';
 
-const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+import { isValidClerkPublishableKey } from '@/lib/auth';
+
+const hasClerk = isValidClerkPublishableKey(
+  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+);
 const hasSupabase = !!process.env.NEXT_PUBLIC_SUPABASE_URL;
 
 /**

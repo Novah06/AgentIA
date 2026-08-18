@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Syne, DM_Sans } from 'next/font/google';
 import { ClerkProvider } from '@clerk/nextjs';
 import './globals.css';
+import { hasClerkConfigured } from '@/lib/auth';
 
 const syne = Syne({
   subsets: ['latin'],
@@ -29,8 +30,7 @@ export const metadata: Metadata = {
   },
 };
 
-const hasClerkKeys =
-  !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && !!process.env.CLERK_SECRET_KEY;
+
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const body = (
@@ -39,32 +39,26 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   );
 
-  if (!hasClerkKeys) return body;
+  if (!hasClerkConfigured) return body;
 
   return (
     <ClerkProvider
       appearance={{
         variables: {
-          colorPrimary: '#00e5ff',
-          colorBackground: '#0e1420',
-          colorInputBackground: '#080c12',
-          colorText: '#eef2f8',
-          colorTextSecondary: '#8899b4',
-          colorInputText: '#eef2f8',
-          colorNeutral: '#eef2f8',
+          colorPrimary: '#e39a2e',
+          colorBackground: '#ffffff',
+          colorInputBackground: '#ffffff',
+          colorText: '#0a0a0a',
+          colorTextSecondary: '#8b8b8b',
+          colorInputText: '#0a0a0a',
+          colorNeutral: '#0a0a0a',
           borderRadius: '0.75rem',
         },
         elements: {
-          card: 'bg-bg-card border border-[rgba(0,229,255,0.15)] shadow-2xl',
-          headerTitle: 'text-text-primary',
-          headerSubtitle: 'text-text-secondary',
-          socialButtonsBlockButton:
-            'border-[rgba(0,229,255,0.15)] hover:bg-bg-card-hover text-text-primary',
-          formFieldInput:
-            'bg-bg-base border-[rgba(0,229,255,0.15)] focus:border-accent text-text-primary',
+          card: 'border border-studio-line shadow-xl',
           formButtonPrimary:
-            'bg-accent hover:bg-accent-dim text-bg-base font-semibold rounded-full',
-          footerActionLink: 'text-accent hover:text-accent-dim',
+            'bg-studio-amber hover:bg-studio-amber-dark text-studio-ink font-semibold',
+          footerActionLink: 'text-studio-amber-dark hover:text-studio-ink',
         },
       }}
     >

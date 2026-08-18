@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { SignIn } from '@clerk/nextjs';
+import { hasClerkConfigured, hasMalformedClerkKeys } from '@/lib/auth';
 
 /**
  * Connexion Metria. Pas d'inscription publique : les comptes sont créés
@@ -7,7 +8,6 @@ import { SignIn } from '@clerk/nextjs';
  * le client se connecte ensuite avec les identifiants convenus.
  */
 export default function SignInPage() {
-  const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-studio-paper py-16 font-sans text-studio-ink">
@@ -17,7 +17,7 @@ export default function SignInPage() {
           <span className="text-xl font-semibold tracking-wide">Metria</span>
         </Link>
 
-        {hasClerk ? (
+        {hasClerkConfigured ? (
           <SignIn
             forceRedirectUrl="/studio"
             appearance={{
@@ -43,8 +43,9 @@ export default function SignInPage() {
           <div className="max-w-md rounded-xl border border-studio-line bg-white p-8 text-center">
             <h1 className="text-2xl font-semibold">Connexion</h1>
             <p className="mt-3 text-sm text-studio-gray">
-              L&apos;authentification n&apos;est pas encore configurée (clés Clerk absentes de{' '}
-              <code>.env.local</code>).
+              {hasMalformedClerkKeys
+                ? "Les clés Clerk enregistrées sont invalides ou incomplètes : vérifiez qu'elles ont été copiées en entier, sans le nom de la variable ni le signe égal."
+                : "L'authentification n'est pas encore configurée (clés Clerk absentes)."}
             </p>
             <Link
               href="/studio"
