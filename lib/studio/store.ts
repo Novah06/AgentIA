@@ -1,8 +1,9 @@
 import { randomUUID } from 'crypto';
 import { getSupabaseAdmin } from '@/lib/supabase/client';
 import type {
-  AnalysisResult,
+  AnalysisStep,
   NewProjectInput,
+  PartialAnalysisResult,
   ProjectPatch,
   SourceCategory,
   SourceStatus,
@@ -11,6 +12,7 @@ import type {
   StudioProject,
   StudioSource,
 } from './types';
+import { isAnalysisComplete } from './types';
 
 /**
  * Couche de données du studio.
@@ -333,10 +335,12 @@ function mapAnalysis(row: any): StudioAnalysis {
     id: row.id,
     projectId: row.project_id,
     status: row.status,
+    completedSteps: row.completed_steps ?? [],
     model: row.model,
     result: row.result,
     error: row.error,
     createdAt: row.created_at,
+    updatedAt: row.updated_at ?? row.created_at,
   };
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
@@ -494,25 +498,23 @@ export async function getSourceData(
 /* ------------------------------------------------------------------ */
 /* Analyses IA                                                         */
 
-export async function saveAnalysis(
+/** Crée une analyse vide en attente, point de départ des trois étapes. */
+export async function createAnalysis(
   projectId: string,
-  input: {
-    status: 'done' | 'error';
-    model: string | null;
-    result: AnalysisResult | null;
-    error: string | null;
-  }
+  model: string
 ): Promise<StudioAnalysis> {
   const sb = getSupabaseAdmin();
   if (!sb) {
     const analysis: StudioAnalysis = {
       id: randomUUID(),
       projectId,
-      status: input.status,
-      model: input.model,
-      result: input.result,
-      error: input.error,
+      status: 'pending',
+      completedSteps: [],
+      model,
+      result: {},
+      error: null,
       createdAt: nowIso(),
+      updatedAt: nowIso(),
     };
     memAnalyses.set(analysis.id, analysis);
     return analysis;
@@ -521,15 +523,111 @@ export async function saveAnalysis(
     .from('studio_analyses')
     .insert({
       project_id: projectId,
-      status: input.status,
-      model: input.model,
-      result: input.result,
-      error: input.error,
+      status: 'pending',
+      completed_steps: [],
+      model,
+      result: {},
     })
     .select()
     .single();
   if (error) throw new Error(error.message);
   return mapAnalysis(data);
+}
+
+/**
+ * Fusionne le résultat d'une étape dans l'analyse en cours.
+ * Le statut passe à 'done' dès que les trois étapes sont enregistrées.
+ */
+export async function applyAnalysisStep(
+  analysisId: string,
+  step: AnalysisStep,
+  partial: PartialAnalysisResult
+): Promise<StudioAnalysis | null> {
+  const sb = getSupabaseAdmin();
+  if (!sb) {
+    const analysis = memAnalyses.get(analysisId);
+    if (!analysis) return null;
+    const steps = analysis.completedSteps.includes(step)
+      ? analysis.completedSteps
+      : [...analysis.completedSteps, step];
+    const merged = { ...(analysis.result ?? {}), ...partial };
+    const updated: StudioAnalysis = {
+      ...analysis,
+      completedSteps: steps,
+      result: merged,
+      status: isAnalysisComplete(merged) ? 'done' : 'pending',
+      error: null,
+      updatedAt: nowIso(),
+    };
+    memAnalyses.set(analysisId, updated);
+    return updated;
+  }
+  const { data: current, error: readError } = await sb
+    .from('studio_analyses')
+    .select('*')
+    .eq('id', analysisId)
+    .maybeSingle();
+  if (readError) throw new Error(readError.message);
+  if (!current) return null;
+
+  const previousSteps: AnalysisStep[] = current.completed_steps ?? [];
+  const steps = previousSteps.includes(step) ? previousSteps : [...previousSteps, step];
+  const merged = { ...(current.result ?? {}), ...partial };
+
+  const { data, error } = await sb
+    .from('studio_analyses')
+    .update({
+      completed_steps: steps,
+      result: merged,
+      status: isAnalysisComplete(merged) ? 'done' : 'pending',
+      error: null,
+      updated_at: nowIso(),
+    })
+    .eq('id', analysisId)
+    .select()
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? mapAnalysis(data) : null;
+}
+
+/** Marque l'analyse en échec, en conservant les étapes déjà obtenues. */
+export async function failAnalysis(
+  analysisId: string,
+  message: string
+): Promise<StudioAnalysis | null> {
+  const sb = getSupabaseAdmin();
+  if (!sb) {
+    const analysis = memAnalyses.get(analysisId);
+    if (!analysis) return null;
+    const updated: StudioAnalysis = {
+      ...analysis,
+      status: 'error',
+      error: message,
+      updatedAt: nowIso(),
+    };
+    memAnalyses.set(analysisId, updated);
+    return updated;
+  }
+  const { data, error } = await sb
+    .from('studio_analyses')
+    .update({ status: 'error', error: message, updated_at: nowIso() })
+    .eq('id', analysisId)
+    .select()
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? mapAnalysis(data) : null;
+}
+
+export async function getAnalysis(analysisId: string): Promise<StudioAnalysis | null> {
+  const sb = getSupabaseAdmin();
+  if (!sb) return memAnalyses.get(analysisId) ?? null;
+  const { data, error } = await sb
+    .from('studio_analyses')
+    .select('*')
+    .eq('id', analysisId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? mapAnalysis(data) : null;
 }
 
 export async function getLatestAnalysis(projectId: string): Promise<StudioAnalysis | null> {

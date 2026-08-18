@@ -59,12 +59,25 @@ create index if not exists idx_studio_sources_owner
 create table if not exists studio_analyses (
   id uuid primary key default gen_random_uuid(),
   project_id uuid references studio_projects(id) on delete cascade,
-  status text not null check (status in ('done', 'error')),
+  status text not null default 'pending'
+    check (status in ('pending', 'done', 'error')),
+  completed_steps text[] not null default '{}',
   model text,
   result jsonb,
   error text,
-  created_at timestamptz default now()
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
 );
+
+-- Migration pour une base déjà créée avec l'ancienne version :
+alter table studio_analyses
+  add column if not exists completed_steps text[] not null default '{}';
+alter table studio_analyses
+  add column if not exists updated_at timestamptz default now();
+alter table studio_analyses drop constraint if exists studio_analyses_status_check;
+alter table studio_analyses
+  add constraint studio_analyses_status_check
+  check (status in ('pending', 'done', 'error'));
 
 create index if not exists idx_studio_analyses_project
   on studio_analyses(project_id, created_at desc);

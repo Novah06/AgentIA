@@ -12,6 +12,36 @@ import {
 } from '@/lib/studio/types';
 
 const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+const hasSupabase = !!process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+/**
+ * Sans Supabase les dossiers ne survivent pas au redémarrage du serveur, et
+ * sans Clerk l'espace est ouvert à quiconque connaît l'adresse. Ces deux
+ * situations doivent être visibles avant qu'on y saisisse un vrai dossier.
+ */
+function ConfigWarning() {
+  if (hasSupabase && hasClerk) return null;
+  const manques = [
+    !hasSupabase &&
+      "les dossiers et documents sont conservés en mémoire : ils disparaîtront au prochain redémarrage (base de données non configurée)",
+    !hasClerk &&
+      "l'espace est accessible sans connexion à toute personne qui connaît l'adresse (authentification non configurée)",
+  ].filter(Boolean) as string[];
+
+  return (
+    <div
+      role="status"
+      className="border-b border-amber-200 bg-amber-50 px-6 py-3 text-sm text-amber-900"
+    >
+      <p className="font-semibold">Mode démonstration — n&apos;y saisissez pas de dossier réel</p>
+      <ul className="mt-1 list-inside list-disc space-y-0.5 text-xs leading-relaxed">
+        {manques.map((m) => (
+          <li key={m}>{m}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 const STATUS_DOT: Record<ProjectStatus, string> = {
   en_cours: 'bg-studio-amber',
@@ -137,7 +167,10 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <main className="ml-72 min-h-screen flex-1">{children}</main>
+      <main className="ml-72 min-h-screen flex-1">
+        <ConfigWarning />
+        {children}
+      </main>
     </div>
   );
 }

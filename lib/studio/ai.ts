@@ -88,29 +88,41 @@ function buildSystem(sources: StudioSource[]): string {
 
 const FIABILITE = { type: 'string', enum: ['confirme', 'estime', 'manquant'] };
 
-const ANALYSIS_SCHEMA = {
+const PRESTATION_ITEM = {
   type: 'object',
   additionalProperties: false,
-  required: ['resume', 'prestations', 'questions', 'risques', 'prechiffrage', 'confianceGlobale'],
+  required: ['famille', 'designation', 'quantite', 'unite', 'source', 'fiabilite', 'commentaire'],
   properties: {
-    resume: { type: 'string', description: 'Résumé clair du projet en quelques phrases' },
-    prestations: {
-      type: 'array',
-      items: {
-        type: 'object',
-        additionalProperties: false,
-        required: ['famille', 'designation', 'quantite', 'unite', 'source', 'fiabilite', 'commentaire'],
-        properties: {
-          famille: { type: 'string' },
-          designation: { type: 'string' },
-          quantite: { type: ['number', 'null'] },
-          unite: { type: ['string', 'null'] },
-          source: { type: 'string' },
-          fiabilite: FIABILITE,
-          commentaire: { type: ['string', 'null'] },
-        },
-      },
+    famille: { type: 'string' },
+    designation: { type: 'string' },
+    quantite: { type: ['number', 'null'] },
+    unite: { type: ['string', 'null'] },
+    source: { type: 'string' },
+    fiabilite: FIABILITE,
+    commentaire: { type: ['string', 'null'] },
+  },
+};
+
+/** Étape 1 — lecture du dossier : résumé + prestations probables. */
+const SCHEMA_CONTEXTE = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['resume', 'prestations'],
+  properties: {
+    resume: {
+      type: 'string',
+      description: 'Résumé clair du projet, incohérences relevées comprises',
     },
+    prestations: { type: 'array', items: PRESTATION_ITEM },
+  },
+} as const;
+
+/** Étape 2 — questions manquantes et risques. */
+const SCHEMA_QUESTIONS = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['questions', 'risques'],
+  properties: {
     questions: {
       type: 'array',
       items: {
@@ -138,6 +150,15 @@ const ANALYSIS_SCHEMA = {
         },
       },
     },
+  },
+} as const;
+
+/** Étape 3 — préchiffrage et heures. */
+const SCHEMA_CHIFFRAGE = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['prechiffrage', 'confianceGlobale'],
+  properties: {
     prechiffrage: {
       type: 'object',
       additionalProperties: false,
@@ -243,15 +264,8 @@ function documentBlocks(
 /* ------------------------------------------------------------------ */
 /* Analyse d'un projet                                                 */
 
-export async function runProjectAnalysis(
-  project: StudioProject,
-  docs: { doc: StudioDocument; data: Buffer }[],
-  sources: StudioSource[]
-): Promise<AnalysisResult> {
-  const client = getAnthropic();
-  const { blocks, skipped } = documentBlocks(docs);
-
-  const meta = [
+function projectMeta(project: StudioProject): string {
+  return [
     `Nom du projet : ${project.name}`,
     project.clientName && `Client : ${project.clientName}`,
     project.salon && `Salon / événement : ${project.salon}`,
@@ -260,51 +274,144 @@ export async function runProjectAnalysis(
   ]
     .filter(Boolean)
     .join('\n');
+}
 
-  const userBlocks: ContentBlock[] = [
+/** Appel commun : sortie JSON conforme au schéma, erreurs traduites. */
+async function askJson<T>(
+  system: string,
+  content: ContentBlock[],
+  schema: Record<string, unknown>,
+  maxTokens: number
+): Promise<T> {
+  const client = getAnthropic();
+  const stream = client.messages.stream({
+    model: ANALYSIS_MODEL,
+    max_tokens: maxTokens,
+    thinking: { type: 'adaptive' },
+    output_config: {
+      effort: 'medium',
+      format: { type: 'json_schema', schema },
+    },
+    system,
+    messages: [{ role: 'user', content }],
+  });
+
+  const response = await stream.finalMessage();
+
+  if (response.stop_reason === 'refusal') {
+    throw new Error("Le modèle a refusé de traiter ce dossier. Vérifiez le contenu des documents.");
+  }
+  if (response.stop_reason === 'max_tokens') {
+    throw new Error('Le dossier est trop volumineux pour être traité en une fois.');
+  }
+  const textBlock = response.content.find(
+    (b): b is Anthropic.Messages.TextBlock => b.type === 'text'
+  );
+  if (!textBlock) throw new Error("Le modèle n'a pas produit de résultat exploitable.");
+  return JSON.parse(textBlock.text) as T;
+}
+
+/**
+ * Étape 1 — la seule qui transmet les documents (plans, rendus).
+ * Produit le résumé du dossier et les prestations probables.
+ */
+export async function analyseContexte(
+  project: StudioProject,
+  docs: { doc: StudioDocument; data: Buffer }[],
+  sources: StudioSource[]
+): Promise<Pick<AnalysisResult, 'resume' | 'prestations'>> {
+  const { blocks, skipped } = documentBlocks(docs);
+
+  const content: ContentBlock[] = [
     ...blocks,
     {
       type: 'text',
       text: [
         'Analyse ce dossier de stand / agencement.',
         '',
-        meta,
+        projectMeta(project),
         project.brief ? `\nBrief client :\n${project.brief}` : '\nAucun brief texte fourni.',
         skipped.length > 0
           ? `\nAttention : documents trop volumineux non transmis : ${skipped.join(', ')}.`
           : '',
-        '\nProduis l\'analyse complète au format demandé : résumé, prestations probables, questions manquantes, risques, préchiffrage en fourchette (coût de revient HT) et heures.',
+        "\nProduis deux choses : (1) un résumé clair du projet, en signalant les incohérences entre brief, plans et rendus ; (2) la liste structurée des prestations probables avec leurs quantités lorsqu'elles sont lisibles ou déductibles, chacune avec sa source et son niveau de fiabilité.",
       ].join('\n'),
     },
   ];
 
-  const stream = client.messages.stream({
-    model: ANALYSIS_MODEL,
-    max_tokens: 32000,
-    thinking: { type: 'adaptive' },
-    system: buildSystem(sources),
-    output_config: {
-      format: {
-        type: 'json_schema',
-        schema: ANALYSIS_SCHEMA as unknown as Record<string, unknown>,
-      },
-    },
-    messages: [{ role: 'user', content: userBlocks }],
-  });
-
-  const response = await stream.finalMessage();
-
-  if (response.stop_reason === 'refusal') {
-    throw new Error("L'analyse a été refusée par le modèle. Vérifiez le contenu des documents.");
-  }
-
-  const textBlock = response.content.find(
-    (b): b is Anthropic.Messages.TextBlock => b.type === 'text'
+  return askJson(
+    buildSystem(sources),
+    content,
+    SCHEMA_CONTEXTE as unknown as Record<string, unknown>,
+    16000
   );
-  if (!textBlock) {
-    throw new Error("Le modèle n'a pas produit de résultat exploitable.");
-  }
-  return JSON.parse(textBlock.text) as AnalysisResult;
+}
+
+/**
+ * Étape 2 — travaille sur le résultat de l'étape 1, sans renvoyer les
+ * documents : questions manquantes classées par thème, et risques.
+ */
+export async function analyseQuestions(
+  project: StudioProject,
+  contexte: Pick<AnalysisResult, 'resume' | 'prestations'>,
+  sources: StudioSource[]
+): Promise<Pick<AnalysisResult, 'questions' | 'risques'>> {
+  const content: ContentBlock[] = [
+    {
+      type: 'text',
+      text: [
+        "Voici l'analyse déjà produite pour ce dossier de stand / agencement.",
+        '',
+        projectMeta(project),
+        project.brief ? `\nBrief client :\n${project.brief}` : '',
+        `\nRésumé retenu :\n${contexte.resume}`,
+        `\nPrestations identifiées :\n${JSON.stringify(contexte.prestations, null, 1)}`,
+        "\nÀ partir de ces éléments, produis : (1) les informations manquantes à demander au client, formulées comme des questions directement envoyables, classées par thème et par urgence ; (2) les risques techniques, financiers et logistiques, avec l'hypothèse retenue et l'action à mener. Concentre-toi sur ce qui change réellement le chiffrage ou le planning.",
+      ].join('\n'),
+    },
+  ];
+
+  return askJson(
+    buildSystem(sources),
+    content,
+    SCHEMA_QUESTIONS as unknown as Record<string, unknown>,
+    12000
+  );
+}
+
+/**
+ * Étape 3 — préchiffrage à partir des prestations retenues et de la
+ * bibliothèque de prix. Ne renvoie pas non plus les documents.
+ */
+export async function analyseChiffrage(
+  project: StudioProject,
+  contexte: Pick<AnalysisResult, 'resume' | 'prestations'>,
+  risques: AnalysisResult['risques'],
+  sources: StudioSource[]
+): Promise<Pick<AnalysisResult, 'prechiffrage' | 'confianceGlobale'>> {
+  const content: ContentBlock[] = [
+    {
+      type: 'text',
+      text: [
+        'Établis le préchiffrage de ce dossier de stand / agencement.',
+        '',
+        projectMeta(project),
+        `\nRésumé :\n${contexte.resume}`,
+        `\nPrestations retenues :\n${JSON.stringify(contexte.prestations, null, 1)}`,
+        risques.length > 0
+          ? `\nRisques et hypothèses déjà identifiés :\n${JSON.stringify(risques, null, 1)}`
+          : '',
+        "\nProduis le coût de revient HT en fourchette (min/max) ligne par ligne, en indiquant pour chacune la base de calcul (prix de la bibliothèque, tarif d'un document de référence, ou estimation de marché) et son niveau de fiabilité. Ajoute l'estimation des heures par poste (atelier, montage, démontage, préparation). Les totaux doivent correspondre à la somme des lignes. Termine par une appréciation honnête du niveau de confiance et des limites de l'estimation.",
+      ].join('\n'),
+    },
+  ];
+
+  return askJson(
+    buildSystem(sources),
+    content,
+    SCHEMA_CHIFFRAGE as unknown as Record<string, unknown>,
+    16000
+  );
 }
 
 /* ------------------------------------------------------------------ */

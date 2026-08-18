@@ -111,15 +111,7 @@ export type NiveauRisque = 'faible' | 'moyen' | 'eleve';
 
 export interface AnalysisResult {
   resume: string;
-  prestations: {
-    famille: string;
-    designation: string;
-    quantite: number | null;
-    unite: string | null;
-    source: string;
-    fiabilite: Fiabilite;
-    commentaire: string | null;
-  }[];
+  prestations: PrestationLigne[];
   questions: {
     theme: string;
     question: string;
@@ -132,15 +124,7 @@ export interface AnalysisResult {
     action: string | null;
   }[];
   prechiffrage: {
-    lignes: {
-      designation: string;
-      quantite: number | null;
-      unite: string | null;
-      coutHtMin: number;
-      coutHtMax: number;
-      base: string;
-      fiabilite: Fiabilite;
-    }[];
+    lignes: ChiffrageLigne[];
     heures: {
       poste: string;
       heuresMin: number;
@@ -153,14 +137,76 @@ export interface AnalysisResult {
   confianceGlobale: string;
 }
 
+export interface PrestationLigne {
+  famille: string;
+  designation: string;
+  quantite: number | null;
+  unite: string | null;
+  source: string;
+  fiabilite: Fiabilite;
+  commentaire: string | null;
+}
+
+export interface ChiffrageLigne {
+  designation: string;
+  quantite: number | null;
+  unite: string | null;
+  coutHtMin: number;
+  coutHtMax: number;
+  base: string;
+  fiabilite: Fiabilite;
+}
+
+/**
+ * L'analyse se déroule en trois étapes courtes enchaînées par le navigateur.
+ * Chaque étape reste bien en deçà de la durée maximale d'une fonction
+ * serverless, et seule la première transmet les documents lourds : les
+ * suivantes travaillent sur le résultat structuré de la précédente.
+ */
+export type AnalysisStep = 'contexte' | 'questions' | 'chiffrage';
+
+export const ANALYSIS_STEPS: AnalysisStep[] = ['contexte', 'questions', 'chiffrage'];
+
+export const ANALYSIS_STEP_LABELS: Record<AnalysisStep, string> = {
+  contexte: 'Lecture du dossier et des plans',
+  questions: 'Questions manquantes et risques',
+  chiffrage: 'Préchiffrage et heures',
+};
+
+export type AnalysisStatus = 'pending' | 'done' | 'error';
+
+/** Résultat partiel : les champs se remplissent au fil des étapes. */
+export type PartialAnalysisResult = Partial<AnalysisResult>;
+
+export function isAnalysisStep(value: unknown): value is AnalysisStep {
+  return typeof value === 'string' && (ANALYSIS_STEPS as string[]).includes(value);
+}
+
+/** Une analyse est complète quand les trois étapes ont produit leur part. */
+export function isAnalysisComplete(
+  result: PartialAnalysisResult | null
+): result is AnalysisResult {
+  return (
+    !!result &&
+    typeof result.resume === 'string' &&
+    Array.isArray(result.prestations) &&
+    Array.isArray(result.questions) &&
+    Array.isArray(result.risques) &&
+    !!result.prechiffrage
+  );
+}
+
 export interface StudioAnalysis {
   id: string;
   projectId: string;
-  status: 'done' | 'error';
+  status: AnalysisStatus;
+  /** Étapes déjà terminées, dans l'ordre d'exécution. */
+  completedSteps: AnalysisStep[];
   model: string | null;
-  result: AnalysisResult | null;
+  result: PartialAnalysisResult | null;
   error: string | null;
   createdAt: string;
+  updatedAt: string;
 }
 
 // Fiabilité importée depuis la bibliothèque de prix pour cohérence

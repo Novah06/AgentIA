@@ -3,10 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { notifyProjectsChanged } from '@/components/studio/StudioShell';
 import {
+  ANALYSIS_STEPS,
+  ANALYSIS_STEP_LABELS,
   PROJECT_STATUSES,
   STATUS_LABELS,
-  type AnalysisResult,
+  type AnalysisStep,
   type Fiabilite,
+  type PartialAnalysisResult,
   type ProjectStatus,
   type StudioAnalysis,
   type StudioDocument,
@@ -68,6 +71,7 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
   const [notFound, setNotFound] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const [currentStep, setCurrentStep] = useState<AnalysisStep | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -131,21 +135,45 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
     setUploading(false);
   }
 
-  async function runAnalysis() {
+  /**
+   * Enchaîne les trois étapes d'analyse. Chaque étape est un appel court,
+   * enregistré côté serveur dès qu'il aboutit : si l'une échoue, les
+   * précédentes sont conservées et « Reprendre » repart de la suivante.
+   */
+  async function runAnalysis(from: AnalysisStep = 'contexte') {
     if (!project || analyzing) return;
     setAnalyzing(true);
     setError(null);
+
+    const remaining = ANALYSIS_STEPS.slice(ANALYSIS_STEPS.indexOf(from));
+    let analysisId = from === 'contexte' ? null : (analysis?.id ?? null);
+
     try {
-      const res = await fetch(`/api/studio/projects/${project.id}/analyze`, { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "L'analyse a échoué.");
-      setAnalysis(data.analysis);
+      for (const step of remaining) {
+        setCurrentStep(step);
+        const res = await fetch(`/api/studio/projects/${project.id}/analyze`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ step, analysisId }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? "L'analyse a échoué.");
+        setAnalysis(data.analysis);
+        analysisId = data.analysis?.id ?? analysisId;
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "L'analyse a échoué.");
       await load();
     } finally {
+      setCurrentStep(null);
       setAnalyzing(false);
     }
+  }
+
+  /** Première étape non encore terminée, pour proposer la reprise. */
+  function nextStep(a: StudioAnalysis | null): AnalysisStep | null {
+    if (!a) return null;
+    return ANALYSIS_STEPS.find((s) => !a.completedSteps.includes(s)) ?? null;
   }
 
   if (notFound) {
@@ -270,7 +298,7 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
           {analysis?.status === 'done' && !analyzing && (
             <button
               type="button"
-              onClick={runAnalysis}
+              onClick={() => runAnalysis('contexte')}
               className="rounded-lg border border-studio-line px-3 py-1.5 text-xs font-semibold transition-colors hover:border-studio-amber hover:text-studio-amber-dark"
             >
               Relancer l&apos;analyse
@@ -278,43 +306,88 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
           )}
         </div>
 
-        {analyzing ? (
-          <div className="flex flex-col items-center gap-2 py-8 text-sm text-studio-gray">
-            <span
-              aria-hidden
-              className="h-6 w-6 animate-spin rounded-full border-2 border-studio-line border-t-studio-amber"
-            />
-            <p>Analyse en cours — lecture du brief, des plans et des rendus…</p>
-            <p className="text-xs">Cela peut prendre une à trois minutes.</p>
-          </div>
-        ) : analysis?.status === 'done' && analysis.result ? (
+        {(analyzing || (analysis && analysis.completedSteps.length > 0)) && (
+          <ol className="mb-5 space-y-1.5">
+            {ANALYSIS_STEPS.map((step) => {
+              const done = analysis?.completedSteps.includes(step) ?? false;
+              const active = analyzing && currentStep === step;
+              return (
+                <li key={step} className="flex items-center gap-2.5 text-sm">
+                  {active ? (
+                    <span
+                      aria-hidden
+                      className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-studio-line border-t-studio-amber"
+                    />
+                  ) : (
+                    <span
+                      aria-hidden
+                      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                        done ? 'bg-emerald-500 text-white' : 'bg-studio-paper text-studio-gray'
+                      }`}
+                    >
+                      {done ? '✓' : ''}
+                    </span>
+                  )}
+                  <span className={done || active ? '' : 'text-studio-gray'}>
+                    {ANALYSIS_STEP_LABELS[step]}
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+        )}
+
+        {analyzing && (
+          <p className="mb-5 text-xs text-studio-gray">
+            Chaque étape prend environ trente secondes. Les résultats s&apos;affichent au fur et à
+            mesure — vous pouvez laisser la page ouverte.
+          </p>
+        )}
+
+        {analysis?.status === 'error' && analysis.error && !analyzing && (
+          <p className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+            {analysis.error}
+            {analysis.completedSteps.length > 0 &&
+              ' — les étapes déjà terminées sont conservées ci-dessous.'}
+          </p>
+        )}
+
+        {analysis?.result && analysis.completedSteps.length > 0 ? (
           <>
-            <p className="mb-4 text-xs text-studio-gray">
-              Analyse du {new Date(analysis.createdAt).toLocaleString('fr-FR')} — chaque ligne est
-              une proposition à vérifier et corriger avant tout engagement.
-            </p>
             <AnalysisView result={analysis.result} />
-          </>
-        ) : (
-          <div className="py-2">
-            <p className="mb-4 text-sm leading-relaxed text-studio-gray">
-              L&apos;analyse lit le brief, les plans et les rendus, puis produit : le résumé du
-              dossier, les prestations probables, les questions à poser au client, les risques et
-              un préchiffrage en fourchette basé sur votre bibliothèque de prix et vos ressources.
-            </p>
-            {analysis?.status === 'error' && analysis.error && (
-              <p className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
-                Dernière tentative en échec : {analysis.error}
+            {!analyzing && analysis.status !== 'done' && nextStep(analysis) && (
+              <button
+                type="button"
+                onClick={() => runAnalysis(nextStep(analysis)!)}
+                className="mt-6 rounded-lg bg-studio-amber px-5 py-2.5 text-sm font-semibold text-studio-ink transition-colors hover:bg-studio-amber-dark"
+              >
+                Reprendre à l&apos;étape « {ANALYSIS_STEP_LABELS[nextStep(analysis)!]} »
+              </button>
+            )}
+            {analysis.status === 'done' && (
+              <p className="mt-6 text-xs text-studio-gray">
+                Analyse terminée le {new Date(analysis.updatedAt).toLocaleString('fr-FR')} — chaque
+                ligne est une proposition à vérifier et corriger avant tout engagement.
               </p>
             )}
-            <button
-              type="button"
-              onClick={runAnalysis}
-              className="rounded-lg bg-studio-amber px-5 py-2.5 text-sm font-semibold text-studio-ink transition-colors hover:bg-studio-amber-dark"
-            >
-              Lancer l&apos;analyse IA
-            </button>
-          </div>
+          </>
+        ) : (
+          !analyzing && (
+            <div className="py-2">
+              <p className="mb-4 text-sm leading-relaxed text-studio-gray">
+                L&apos;analyse lit le brief, les plans et les rendus, puis produit : le résumé du
+                dossier, les prestations probables, les questions à poser au client, les risques et
+                un préchiffrage en fourchette basé sur votre bibliothèque de prix et vos ressources.
+              </p>
+              <button
+                type="button"
+                onClick={() => runAnalysis('contexte')}
+                className="rounded-lg bg-studio-amber px-5 py-2.5 text-sm font-semibold text-studio-ink transition-colors hover:bg-studio-amber-dark"
+              >
+                Lancer l&apos;analyse IA
+              </button>
+            </div>
+          )
         )}
       </section>
     </div>
@@ -323,15 +396,17 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
 
 /* ------------------------------------------------------------------ */
 
-function AnalysisView({ result }: { result: AnalysisResult }) {
+function AnalysisView({ result }: { result: PartialAnalysisResult }) {
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="mb-1.5 text-sm font-semibold">Résumé du projet</h3>
-        <p className="whitespace-pre-wrap text-sm leading-relaxed">{result.resume}</p>
-      </div>
+      {result.resume && (
+        <div>
+          <h3 className="mb-1.5 text-sm font-semibold">Résumé du projet</h3>
+          <p className="whitespace-pre-wrap text-sm leading-relaxed">{result.resume}</p>
+        </div>
+      )}
 
-      {result.prestations.length > 0 && (
+      {result.prestations && result.prestations.length > 0 && (
         <div>
           <h3 className="mb-2 text-sm font-semibold">
             Prestations probables ({result.prestations.length})
@@ -378,7 +453,7 @@ function AnalysisView({ result }: { result: AnalysisResult }) {
         </div>
       )}
 
-      {result.questions.length > 0 && (
+      {result.questions && result.questions.length > 0 && (
         <div>
           <h3 className="mb-2 text-sm font-semibold">
             Questions à poser au client ({result.questions.length})
@@ -398,7 +473,7 @@ function AnalysisView({ result }: { result: AnalysisResult }) {
         </div>
       )}
 
-      {result.risques.length > 0 && (
+      {result.risques && result.risques.length > 0 && (
         <div>
           <h3 className="mb-2 text-sm font-semibold">Risques ({result.risques.length})</h3>
           <ul className="space-y-2">
@@ -424,6 +499,7 @@ function AnalysisView({ result }: { result: AnalysisResult }) {
         </div>
       )}
 
+      {result.prechiffrage && (
       <div>
         <h3 className="mb-2 text-sm font-semibold">Préchiffrage — coût de revient HT</h3>
         {result.prechiffrage.lignes.length > 0 && (
@@ -490,11 +566,14 @@ function AnalysisView({ result }: { result: AnalysisResult }) {
           </p>
         )}
       </div>
+      )}
 
-      <div className="rounded-lg bg-studio-paper p-4">
-        <h3 className="mb-1 text-sm font-semibold">Niveau de confiance</h3>
-        <p className="text-sm leading-relaxed text-studio-gray">{result.confianceGlobale}</p>
-      </div>
+      {result.confianceGlobale && (
+        <div className="rounded-lg bg-studio-paper p-4">
+          <h3 className="mb-1 text-sm font-semibold">Niveau de confiance</h3>
+          <p className="text-sm leading-relaxed text-studio-gray">{result.confianceGlobale}</p>
+        </div>
+      )}
     </div>
   );
 }
