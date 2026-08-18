@@ -59,8 +59,14 @@ export async function PATCH(req: Request, { params }: Params) {
   if (typeof body.salon === 'string') patch.salon = body.salon.trim();
   if (typeof body.city === 'string') patch.city = body.city.trim();
   if (typeof body.brief === 'string') patch.brief = body.brief;
-  if (typeof body.surfaceM2 === 'number' && Number.isFinite(body.surfaceM2)) {
+  // null ou chaîne vide effacent la surface ; une virgule décimale est acceptée.
+  if (body.surfaceM2 === null || body.surfaceM2 === '') {
+    patch.surfaceM2 = null;
+  } else if (typeof body.surfaceM2 === 'number' && Number.isFinite(body.surfaceM2)) {
     patch.surfaceM2 = body.surfaceM2;
+  } else if (typeof body.surfaceM2 === 'string') {
+    const parsed = Number(body.surfaceM2.replace(',', '.'));
+    if (Number.isFinite(parsed)) patch.surfaceM2 = parsed;
   }
 
   if (Object.keys(patch).length === 0) {

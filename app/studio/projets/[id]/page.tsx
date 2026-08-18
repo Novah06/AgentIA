@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { notifyProjectsChanged } from '@/components/studio/StudioShell';
 import { ChiffrageEditor } from '@/components/studio/ChiffrageEditor';
+import { ProjectSettings } from '@/components/studio/ProjectSettings';
+import { EcartsPanel } from '@/components/studio/EcartsPanel';
 import {
   ANALYSIS_STEPS,
   ANALYSIS_STEP_LABELS,
@@ -264,6 +266,9 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
             </button>
           ))}
         </div>
+        <div className="mt-4">
+          <ProjectSettings project={project} onUpdated={setProject} />
+        </div>
       </header>
 
       {error && (
@@ -497,11 +502,21 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
         </div>
 
         {chiffrage ? (
-          <ChiffrageEditor
-            projectId={project.id}
-            chiffrage={chiffrage}
-            onSaved={setChiffrage}
-          />
+          <>
+            <ChiffrageEditor
+              projectId={project.id}
+              chiffrage={chiffrage}
+              onSaved={setChiffrage}
+            />
+            {analysis?.result?.prechiffrage && (
+              <div className="mt-6">
+                <EcartsPanel
+                  prechiffrageIa={analysis.result.prechiffrage}
+                  chiffrage={chiffrage}
+                />
+              </div>
+            )}
+          </>
         ) : (
           <div className="py-2">
             <p className="mb-4 text-sm leading-relaxed text-studio-gray">

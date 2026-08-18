@@ -68,6 +68,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
   // Sur petit écran la barre latérale devient un tiroir : elle se referme
   // dès qu'on change de page, sinon elle masquerait le contenu demandé.
   const [menuOpen, setMenuOpen] = useState(false);
+  const [recherche, setRecherche] = useState('');
 
   const load = useCallback(async () => {
     try {
@@ -91,6 +92,17 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setMenuOpen(false);
   }, [pathname]);
+
+  // La recherche couvre les champs par lesquels on retrouve un dossier de
+  // mémoire : son nom, mais aussi le client, le salon ou la ville.
+  const terme = recherche.trim().toLowerCase();
+  const visibles = terme
+    ? projects.filter((p) =>
+        [p.name, p.clientName, p.salon, p.city]
+          .filter(Boolean)
+          .some((champ) => (champ as string).toLowerCase().includes(terme))
+      )
+    : projects;
 
   return (
     <div className="flex min-h-screen bg-studio-paper font-sans text-studio-ink">
@@ -137,9 +149,22 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
           + Nouveau projet
         </Link>
 
-        <nav className="mt-6 flex-1 overflow-y-auto px-3 pb-4">
+        {projects.length > 6 && (
+          <div className="mt-5 px-4">
+            <input
+              type="search"
+              value={recherche}
+              onChange={(e) => setRecherche(e.target.value)}
+              placeholder="Rechercher un projet…"
+              aria-label="Rechercher un projet"
+              className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/35 focus:border-studio-amber focus:outline-none"
+            />
+          </div>
+        )}
+
+        <nav className="mt-5 flex-1 overflow-y-auto px-3 pb-4">
           {PROJECT_STATUSES.map((status) => {
-            const group = projects.filter((p) => p.status === status);
+            const group = visibles.filter((p) => p.status === status);
             return (
               <section key={status} className="mb-5">
                 <h2 className="flex items-center gap-2 px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-white/45">
@@ -149,7 +174,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
                 </h2>
                 {group.length === 0 ? (
                   <p className="px-2 py-1 text-xs text-white/25">
-                    {loaded ? 'Aucun projet' : '…'}
+                    {!loaded ? '…' : terme ? 'Aucun résultat' : 'Aucun projet'}
                   </p>
                 ) : (
                   <ul>
