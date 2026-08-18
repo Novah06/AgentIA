@@ -177,15 +177,15 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
 
         <div className="border-t border-white/10 px-3 py-2">
           <Link
-            href="/studio/ressources"
+            href="/studio/profil"
             className={`flex items-center gap-2 rounded-md px-2 py-2 text-sm transition-colors ${
-              pathname === '/studio/ressources'
+              pathname === '/studio/profil'
                 ? 'bg-white/10 text-white'
                 : 'text-white/70 hover:bg-white/5 hover:text-white'
             }`}
           >
             <span aria-hidden className="inline-block h-2 w-2 rounded-[2px] border border-studio-amber" />
-            Ressources IA
+            Notre entreprise
           </Link>
         </div>
 

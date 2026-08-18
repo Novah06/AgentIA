@@ -9,6 +9,7 @@ import {
   getProject,
   listDocuments,
   listSources,
+  getProfile,
 } from '@/lib/studio/store';
 import {
   ANALYSIS_MODEL,
@@ -79,7 +80,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   }
 
   try {
-    const sources = await listSources(ownerId);
+    const [sources, profile] = await Promise.all([listSources(ownerId), getProfile(ownerId)]);
 
     if (step === 'contexte') {
       const documents = await listDocuments(project.id);
@@ -94,7 +95,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
           { status: 400 }
         );
       }
-      const partial = await analyseContexte(project, docsWithData, sources);
+      const partial = await analyseContexte(project, docsWithData, sources, profile);
       const updated = await applyAnalysisStep(analysis.id, 'contexte', partial);
       return NextResponse.json({ analysis: updated });
     }
@@ -113,12 +114,12 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     } satisfies Pick<AnalysisResult, 'resume' | 'prestations'>;
 
     if (step === 'questions') {
-      const partial = await analyseQuestions(project, contexte, sources);
+      const partial = await analyseQuestions(project, contexte, sources, profile);
       const updated = await applyAnalysisStep(analysis.id, 'questions', partial);
       return NextResponse.json({ analysis: updated });
     }
 
-    const partial = await analyseChiffrage(project, contexte, current.risques ?? [], sources);
+    const partial = await analyseChiffrage(project, contexte, current.risques ?? [], sources, profile);
     const updated = await applyAnalysisStep(analysis.id, 'chiffrage', partial);
     return NextResponse.json({ analysis: updated });
   } catch (err) {

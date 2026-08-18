@@ -15,6 +15,7 @@ import type {
 } from './types';
 import { SOURCE_CATEGORY_LABELS } from './types';
 import { extractOfficeText } from './extract';
+import { profileToPrompt, type StudioProfile } from './profile';
 
 export const ANALYSIS_MODEL = 'claude-opus-4-8';
 
@@ -67,8 +68,14 @@ Exigences de traçabilité :
 - Signale les incohérences entre brief, plans et rendus.
 - Réponds intégralement en français.`;
 
-function buildSystem(sources: StudioSource[]): string {
+function buildSystem(sources: StudioSource[], profile?: StudioProfile | null): string {
   const parts = [SYSTEM_CORE, '', '## Bibliothèque de prix de l\'entreprise', pricingLibraryText()];
+
+  // Le profil passe avant les documents : ce sont les règles que
+  // l'entreprise a explicitement formulées, elles priment.
+  if (profile) {
+    parts.push('', "## Paramètres et règles de l'entreprise", profileToPrompt(profile));
+  }
 
   const usable = sources.filter((s) => s.extractedText && s.status === 'traite');
   if (usable.length > 0) {
@@ -319,7 +326,8 @@ async function askJson<T>(
 export async function analyseContexte(
   project: StudioProject,
   docs: { doc: StudioDocument; data: Buffer }[],
-  sources: StudioSource[]
+  sources: StudioSource[],
+  profile?: StudioProfile | null
 ): Promise<Pick<AnalysisResult, 'resume' | 'prestations'>> {
   const { blocks, skipped } = await documentBlocks(docs);
 
@@ -341,7 +349,7 @@ export async function analyseContexte(
   ];
 
   return askJson(
-    buildSystem(sources),
+    buildSystem(sources, profile),
     content,
     SCHEMA_CONTEXTE as unknown as Record<string, unknown>,
     16000
@@ -355,7 +363,8 @@ export async function analyseContexte(
 export async function analyseQuestions(
   project: StudioProject,
   contexte: Pick<AnalysisResult, 'resume' | 'prestations'>,
-  sources: StudioSource[]
+  sources: StudioSource[],
+  profile?: StudioProfile | null
 ): Promise<Pick<AnalysisResult, 'questions' | 'risques'>> {
   const content: ContentBlock[] = [
     {
@@ -373,7 +382,7 @@ export async function analyseQuestions(
   ];
 
   return askJson(
-    buildSystem(sources),
+    buildSystem(sources, profile),
     content,
     SCHEMA_QUESTIONS as unknown as Record<string, unknown>,
     12000
@@ -388,7 +397,8 @@ export async function analyseChiffrage(
   project: StudioProject,
   contexte: Pick<AnalysisResult, 'resume' | 'prestations'>,
   risques: AnalysisResult['risques'],
-  sources: StudioSource[]
+  sources: StudioSource[],
+  profile?: StudioProfile | null
 ): Promise<Pick<AnalysisResult, 'prechiffrage' | 'confianceGlobale'>> {
   const content: ContentBlock[] = [
     {
@@ -408,7 +418,7 @@ export async function analyseChiffrage(
   ];
 
   return askJson(
-    buildSystem(sources),
+    buildSystem(sources, profile),
     content,
     SCHEMA_CHIFFRAGE as unknown as Record<string, unknown>,
     16000

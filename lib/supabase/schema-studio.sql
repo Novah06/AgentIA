@@ -97,3 +97,13 @@ create table if not exists studio_chiffrages (
 
 create index if not exists idx_studio_chiffrages_project
   on studio_chiffrages(project_id);
+
+-- Profil d'entreprise : paramètres de chiffrage et règles métier du client
+create table if not exists studio_profiles (
+  owner_id text primary key,
+  company_name text,
+  settings jsonb not null default '{}',
+  reponses jsonb not null default '{}',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);

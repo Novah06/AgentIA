@@ -16,6 +16,8 @@ import type {
   StudioSource,
 } from './types';
 import { isAnalysisComplete } from './types';
+import { emptyProfile, SETTINGS_DEFAUT } from './profile';
+import type { ProfileSettings, StudioProfile } from './profile';
 
 /**
  * Couche de données du studio.
@@ -34,6 +36,7 @@ type MemStore = {
   sources: Map<string, StudioSource & { data: Buffer }>;
   analyses: Map<string, StudioAnalysis>;
   chiffrages: Map<string, StudioChiffrage>;
+  profiles: Map<string, StudioProfile>;
 };
 const globalStore = globalThis as unknown as { __studioMemStore?: MemStore };
 const mem: MemStore =
@@ -44,12 +47,14 @@ const mem: MemStore =
     sources: new Map(),
     analyses: new Map(),
     chiffrages: new Map(),
+    profiles: new Map(),
   });
 const memProjects = mem.projects;
 const memDocs = mem.docs;
 const memSources = mem.sources;
 const memAnalyses = mem.analyses;
 const memChiffrages = mem.chiffrages;
+const memProfiles = mem.profiles;
 
 const STORAGE_BUCKET = 'studio-docs';
 
@@ -774,4 +779,67 @@ export async function listAnalyses(
     .limit(limit);
   if (error) throw new Error(error.message);
   return (data ?? []).map(mapAnalysis);
+}
+
+/* ------------------------------------------------------------------ */
+/* Profil d'entreprise                                                 */
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function mapProfile(row: any): StudioProfile {
+  return {
+    ownerId: row.owner_id,
+    companyName: row.company_name,
+    settings: { ...SETTINGS_DEFAUT, ...(row.settings ?? {}) },
+    reponses: row.reponses ?? {},
+    updatedAt: row.updated_at ?? row.created_at,
+  };
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+export async function getProfile(ownerId: string): Promise<StudioProfile> {
+  const sb = getSupabaseAdmin();
+  if (!sb) return memProfiles.get(ownerId) ?? emptyProfile(ownerId);
+  const { data, error } = await sb
+    .from('studio_profiles')
+    .select('*')
+    .eq('owner_id', ownerId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? mapProfile(data) : emptyProfile(ownerId);
+}
+
+export async function saveProfile(
+  ownerId: string,
+  input: {
+    companyName: string | null;
+    settings: ProfileSettings;
+    reponses: Record<string, string>;
+  }
+): Promise<StudioProfile> {
+  const sb = getSupabaseAdmin();
+  if (!sb) {
+    const profile: StudioProfile = {
+      ownerId,
+      ...input,
+      updatedAt: nowIso(),
+    };
+    memProfiles.set(ownerId, profile);
+    return profile;
+  }
+  const { data, error } = await sb
+    .from('studio_profiles')
+    .upsert(
+      {
+        owner_id: ownerId,
+        company_name: input.companyName,
+        settings: input.settings,
+        reponses: input.reponses,
+        updated_at: nowIso(),
+      },
+      { onConflict: 'owner_id' }
+    )
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return mapProfile(data);
 }

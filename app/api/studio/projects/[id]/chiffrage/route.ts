@@ -1,14 +1,18 @@
 import { randomUUID } from 'crypto';
 import { NextResponse } from 'next/server';
 import { getOwnerId } from '@/lib/studio/auth';
-import { getChiffrage, getLatestAnalysis, getProject, saveChiffrage } from '@/lib/studio/store';
-import { mainOeuvreHtHeure } from '@/lib/pricing/materials';
+import {
+  getChiffrage,
+  getLatestAnalysis,
+  getProfile,
+  getProject,
+  saveChiffrage,
+} from '@/lib/studio/store';
 import type { ChiffrageItem, HeureItem, StudioChiffrage } from '@/lib/studio/types';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const COEFFICIENT_DEFAUT = 2.5;
 
 /** Nettoie une valeur numérique venue du client (virgule décimale acceptée). */
 function num(value: unknown, fallback: number): number {
@@ -73,8 +77,16 @@ function sanitizeHeure(raw: any, tauxDefaut: number, coefDefaut: number): HeureI
  * Les lignes restent marquées 'ia' et non validées tant qu'un humain ne les
  * a pas relues — c'est la règle de traçabilité du plan d'action.
  */
-async function seedFromAnalysis(projectId: string): Promise<StudioChiffrage | null> {
-  const analysis = await getLatestAnalysis(projectId);
+async function seedFromAnalysis(
+  ownerId: string,
+  projectId: string
+): Promise<StudioChiffrage | null> {
+  const [analysis, profile] = await Promise.all([
+    getLatestAnalysis(projectId),
+    getProfile(ownerId),
+  ]);
+  const coefDefaut = profile.settings.coefficientDefaut;
+  const coefMo = profile.settings.coefficientMainOeuvre ?? coefDefaut;
   const prechiffrage = analysis?.result?.prechiffrage;
   if (!prechiffrage) return null;
 
@@ -96,7 +108,7 @@ async function seedFromAnalysis(projectId: string): Promise<StudioChiffrage | nu
     coutHtMax: Math.max(0, Math.max(l.coutHtMin, l.coutHtMax)),
     base: l.base,
     fiabilite: l.fiabilite,
-    coefficient: COEFFICIENT_DEFAUT,
+    coefficient: coefDefaut,
     valide: false,
     origine: 'ia',
   }));
@@ -106,8 +118,10 @@ async function seedFromAnalysis(projectId: string): Promise<StudioChiffrage | nu
     poste: h.poste,
     heuresMin: Math.max(0, h.heuresMin),
     heuresMax: Math.max(0, Math.max(h.heuresMin, h.heuresMax)),
-    tauxHoraireHt: mainOeuvreHtHeure,
-    coefficient: COEFFICIENT_DEFAUT,
+    tauxHoraireHt: /montage|démontage|demontage|site|pose/i.test(h.poste)
+      ? profile.settings.tauxHoraireMontage
+      : profile.settings.tauxHoraireAtelier,
+    coefficient: coefMo,
     valide: false,
     origine: 'ia',
   }));
@@ -115,8 +129,8 @@ async function seedFromAnalysis(projectId: string): Promise<StudioChiffrage | nu
   return saveChiffrage(projectId, {
     lignes,
     heures,
-    coefficientDefaut: COEFFICIENT_DEFAUT,
-    tauxHoraireDefaut: mainOeuvreHtHeure,
+    coefficientDefaut: coefDefaut,
+    tauxHoraireDefaut: profile.settings.tauxHoraireAtelier,
     commentaire: prechiffrage.commentaire,
   });
 }
@@ -144,7 +158,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
   if (!project) return NextResponse.json({ error: 'Projet introuvable' }, { status: 404 });
 
   try {
-    const chiffrage = await seedFromAnalysis(project.id);
+    const chiffrage = await seedFromAnalysis(ownerId, project.id);
     if (!chiffrage) {
       return NextResponse.json(
         { error: "Lancez d'abord l'analyse IA jusqu'à l'étape du préchiffrage." },
@@ -172,8 +186,15 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     return NextResponse.json({ error: 'JSON invalide' }, { status: 400 });
   }
 
-  const coefficientDefaut = Math.max(0, num(body.coefficientDefaut, COEFFICIENT_DEFAUT));
-  const tauxHoraireDefaut = Math.max(0, num(body.tauxHoraireDefaut, mainOeuvreHtHeure));
+  const profile = await getProfile(ownerId);
+  const coefficientDefaut = Math.max(
+    0,
+    num(body.coefficientDefaut, profile.settings.coefficientDefaut)
+  );
+  const tauxHoraireDefaut = Math.max(
+    0,
+    num(body.tauxHoraireDefaut, profile.settings.tauxHoraireAtelier)
+  );
   const lignesRaw = Array.isArray(body.lignes) ? body.lignes : [];
   const heuresRaw = Array.isArray(body.heures) ? body.heures : [];
 
