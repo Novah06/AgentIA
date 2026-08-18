@@ -730,3 +730,48 @@ export async function saveChiffrage(
   if (error) throw new Error(error.message);
   return mapChiffrage(data);
 }
+
+/** Supprime un document du projet, en base et dans le stockage. */
+export async function deleteDocument(projectId: string, documentId: string): Promise<boolean> {
+  const sb = getSupabaseAdmin();
+  if (!sb) {
+    const doc = memDocs.get(documentId);
+    if (!doc || doc.projectId !== projectId) return false;
+    memDocs.delete(documentId);
+    return true;
+  }
+  const { data, error } = await sb
+    .from('studio_documents')
+    .delete()
+    .eq('id', documentId)
+    .eq('project_id', projectId)
+    .select()
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (data?.storage_path) {
+    await sb.storage.from(STORAGE_BUCKET).remove([data.storage_path]);
+  }
+  return !!data;
+}
+
+/** Historique des analyses d'un projet, la plus récente en premier. */
+export async function listAnalyses(
+  projectId: string,
+  limit = 10
+): Promise<StudioAnalysis[]> {
+  const sb = getSupabaseAdmin();
+  if (!sb) {
+    return [...memAnalyses.values()]
+      .filter((a) => a.projectId === projectId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .slice(0, limit);
+  }
+  const { data, error } = await sb
+    .from('studio_analyses')
+    .select('*')
+    .eq('project_id', projectId)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapAnalysis);
+}

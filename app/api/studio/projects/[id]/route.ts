@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import { getOwnerId } from '@/lib/studio/auth';
 import {
   deleteProject,
-  getLatestAnalysis,
   getProject,
+  listAnalyses,
   listDocuments,
   updateProject,
 } from '@/lib/studio/store';
@@ -20,11 +20,16 @@ export async function GET(_req: Request, { params }: Params) {
   try {
     const project = await getProject(ownerId, params.id);
     if (!project) return NextResponse.json({ error: 'Projet introuvable' }, { status: 404 });
-    const [documents, analysis] = await Promise.all([
+    const [documents, analyses] = await Promise.all([
       listDocuments(project.id),
-      getLatestAnalysis(project.id),
+      listAnalyses(project.id),
     ]);
-    return NextResponse.json({ project, documents, analysis });
+    return NextResponse.json({
+      project,
+      documents,
+      analysis: analyses[0] ?? null,
+      analyses,
+    });
   } catch (err) {
     console.error('[studio/projects/:id] GET:', err);
     return NextResponse.json({ error: 'Lecture du projet impossible' }, { status: 500 });

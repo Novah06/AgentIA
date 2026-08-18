@@ -147,10 +147,19 @@ export default function LandingPage() {
       </section>
 
       <footer className="border-t border-studio-line py-8 text-center text-xs text-studio-gray">
-        <p>
-          © {new Date().getFullYear()} Metria — L&apos;avant-chiffrage assisté par IA.{' '}
+        <p>© {new Date().getFullYear()} Metria — L&apos;avant-chiffrage assisté par IA.</p>
+        <p className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
           <Link href="/sign-in" className="underline-offset-2 hover:underline">
             Espace client
+          </Link>
+          <Link href="/legal/mentions" className="underline-offset-2 hover:underline">
+            Mentions légales
+          </Link>
+          <Link href="/legal/cgu" className="underline-offset-2 hover:underline">
+            CGU
+          </Link>
+          <Link href="/legal/privacy" className="underline-offset-2 hover:underline">
+            Confidentialité
           </Link>
         </p>
       </footer>

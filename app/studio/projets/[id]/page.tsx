@@ -70,6 +70,7 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
   const [project, setProject] = useState<StudioProject | null>(null);
   const [documents, setDocuments] = useState<StudioDocument[]>([]);
   const [analysis, setAnalysis] = useState<StudioAnalysis | null>(null);
+  const [analyses, setAnalyses] = useState<StudioAnalysis[]>([]);
   const [chiffrage, setChiffrage] = useState<StudioChiffrage | null>(null);
   const [creatingChiffrage, setCreatingChiffrage] = useState(false);
   const [notFound, setNotFound] = useState(false);
@@ -90,6 +91,7 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
       setProject(data.project);
       setDocuments(data.documents ?? []);
       setAnalysis(data.analysis ?? null);
+      setAnalyses(data.analyses ?? []);
       const cRes = await fetch(`/api/studio/projects/${params.id}/chiffrage`, {
         cache: 'no-store',
       });
@@ -178,6 +180,16 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
     }
   }
 
+  async function removeDocument(doc: StudioDocument) {
+    if (!project) return;
+    if (!window.confirm(`Retirer « ${doc.fileName} » du projet ?`)) return;
+    const res = await fetch(`/api/studio/projects/${project.id}/documents/${doc.id}`, {
+      method: 'DELETE',
+    });
+    if (res.ok) setDocuments((prev) => prev.filter((d) => d.id !== doc.id));
+    else setError('Suppression du document impossible.');
+  }
+
   /** Reprend le préchiffrage de l'analyse dans un tableau éditable. */
   async function createChiffrage() {
     if (!project || creatingChiffrage) return;
@@ -230,7 +242,7 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
   ].filter(Boolean);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 px-6 py-12">
+    <div className="mx-auto max-w-4xl space-y-6 px-4 py-8 sm:px-6 sm:py-12">
       <header>
         <h1 className="text-3xl font-semibold tracking-tight">{project.name}</h1>
         {meta.length > 0 && (
@@ -306,9 +318,33 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
                 <span className="w-10 shrink-0 rounded bg-studio-paper px-1.5 py-0.5 text-center text-[10px] font-bold text-studio-gray">
                   {docIcon(doc.fileType)}
                 </span>
-                <span className="truncate">{doc.fileName}</span>
-                <span className="ml-auto shrink-0 text-xs text-studio-gray">
+                <a
+                  href={`/api/studio/projects/${project.id}/documents/${doc.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="truncate underline-offset-2 hover:text-studio-amber-dark hover:underline"
+                  title="Ouvrir le document"
+                >
+                  {doc.fileName}
+                </a>
+                <span className="ml-auto flex shrink-0 items-center gap-3 text-xs text-studio-gray">
                   {formatSize(doc.sizeBytes)}
+                  <a
+                    href={`/api/studio/projects/${project.id}/documents/${doc.id}?download=1`}
+                    className="transition-colors hover:text-studio-ink"
+                    title="Télécharger"
+                    aria-label={`Télécharger ${doc.fileName}`}
+                  >
+                    ↓
+                  </a>
+                  <button
+                    type="button"
+                    aria-label={`Supprimer ${doc.fileName}`}
+                    onClick={() => removeDocument(doc)}
+                    className="transition-colors hover:text-red-600"
+                  >
+                    ✕
+                  </button>
                 </span>
               </li>
             ))}
@@ -317,20 +353,43 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
       </section>
 
       <section className="rounded-xl border border-studio-line bg-white p-6">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-studio-gray">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="flex shrink-0 items-center gap-2 whitespace-nowrap text-sm font-semibold uppercase tracking-wider text-studio-gray">
             <span aria-hidden className="inline-block h-2 w-2 rounded-[2px] bg-studio-amber" />
             Analyse IA
           </h2>
-          {analysis?.status === 'done' && !analyzing && (
-            <button
-              type="button"
-              onClick={() => runAnalysis('contexte')}
-              className="rounded-lg border border-studio-line px-3 py-1.5 text-xs font-semibold transition-colors hover:border-studio-amber hover:text-studio-amber-dark"
-            >
-              Relancer l&apos;analyse
-            </button>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {analyses.length > 1 && !analyzing && (
+              <label className="text-xs text-studio-gray">
+                <span className="sr-only">Choisir une analyse</span>
+                <select
+                  value={analysis?.id ?? ''}
+                  onChange={(e) =>
+                    setAnalysis(analyses.find((a) => a.id === e.target.value) ?? null)
+                  }
+                  className="rounded-lg border border-studio-line bg-white px-2 py-1.5 text-xs focus:border-studio-amber focus:outline-none"
+                >
+                  {analyses.map((a, i) => (
+                    <option key={a.id} value={a.id}>
+                      {i === 0 ? 'Dernière — ' : ''}
+                      {new Date(a.createdAt).toLocaleString('fr-FR')}
+                      {a.status === 'error' ? ' (échec)' : ''}
+                      {a.status === 'pending' ? ' (incomplète)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {analysis?.status === 'done' && !analyzing && (
+              <button
+                type="button"
+                onClick={() => runAnalysis('contexte')}
+                className="rounded-lg border border-studio-line px-3 py-1.5 text-xs font-semibold transition-colors hover:border-studio-amber hover:text-studio-amber-dark"
+              >
+                Nouvelle analyse
+              </button>
+            )}
+          </div>
         </div>
 
         {(analyzing || (analysis && analysis.completedSteps.length > 0)) && (

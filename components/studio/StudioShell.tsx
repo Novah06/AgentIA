@@ -31,7 +31,7 @@ function ConfigWarning() {
   return (
     <div
       role="status"
-      className="border-b border-amber-200 bg-amber-50 px-6 py-3 text-sm text-amber-900"
+      className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:px-6"
     >
       <p className="font-semibold">Mode démonstration — n&apos;y saisissez pas de dossier réel</p>
       <ul className="mt-1 list-inside list-disc space-y-0.5 text-xs leading-relaxed">
@@ -61,6 +61,9 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [projects, setProjects] = useState<StudioProject[]>([]);
   const [loaded, setLoaded] = useState(false);
+  // Sur petit écran la barre latérale devient un tiroir : elle se referme
+  // dès qu'on change de page, sinon elle masquerait le contenu demandé.
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -81,9 +84,42 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener(PROJECTS_CHANGED_EVENT, load);
   }, [load]);
 
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+
   return (
     <div className="flex min-h-screen bg-studio-paper font-sans text-studio-ink">
-      <aside className="fixed inset-y-0 left-0 z-40 flex w-72 flex-col bg-studio-ink text-white">
+      <header className="fixed inset-x-0 top-0 z-30 flex h-14 items-center gap-3 border-b border-studio-line bg-studio-paper/95 px-4 backdrop-blur lg:hidden">
+        <button
+          type="button"
+          onClick={() => setMenuOpen((o) => !o)}
+          aria-expanded={menuOpen}
+          aria-label={menuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
+          className="flex h-9 w-9 items-center justify-center rounded-lg border border-studio-line bg-white text-lg"
+        >
+          {menuOpen ? '\u2715' : '\u2630'}
+        </button>
+        <span className="flex items-center gap-2">
+          <span aria-hidden className="inline-block h-2.5 w-2.5 rounded-[3px] bg-studio-amber" />
+          <span className="font-semibold tracking-wide">Metria</span>
+        </span>
+      </header>
+
+      {menuOpen && (
+        <button
+          type="button"
+          aria-label="Fermer le menu"
+          onClick={() => setMenuOpen(false)}
+          className="fixed inset-0 z-30 bg-black/40 lg:hidden"
+        />
+      )}
+
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col bg-studio-ink text-white transition-transform lg:translate-x-0 ${
+          menuOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
         <Link href="/studio" className="flex items-center gap-2.5 px-5 pb-1 pt-6">
           <span aria-hidden className="inline-block h-3 w-3 rounded-[3px] bg-studio-amber" />
           <span className="text-lg font-semibold tracking-wide">Metria</span>
@@ -167,7 +203,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <main className="ml-72 min-h-screen flex-1">
+      <main className="min-h-screen w-full min-w-0 flex-1 pt-14 lg:ml-72 lg:pt-0">
         <ConfigWarning />
         {children}
       </main>
