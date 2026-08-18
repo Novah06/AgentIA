@@ -211,3 +211,116 @@ export interface StudioAnalysis {
 
 // Fiabilité importée depuis la bibliothèque de prix pour cohérence
 export type Fiabilite = 'confirme' | 'estime' | 'manquant';
+
+/* ------------------------------------------------------------------ */
+/* Chiffrage de travail : la version corrigée et validée par l'humain   */
+
+export type LigneOrigine = 'ia' | 'humain';
+
+export interface ChiffrageItem {
+  id: string;
+  famille: string;
+  designation: string;
+  quantite: number | null;
+  unite: string | null;
+  /** Coût de revient HT, en fourchette */
+  coutHtMin: number;
+  coutHtMax: number;
+  /** Base de calcul reprise de l'analyse ou saisie par le chargé d'affaires */
+  base: string;
+  fiabilite: Fiabilite;
+  /** Multiplicateur appliqué au coût pour obtenir le prix de vente */
+  coefficient: number;
+  /** Ligne relue et confirmée par un humain */
+  valide: boolean;
+  origine: LigneOrigine;
+}
+
+export interface HeureItem {
+  id: string;
+  poste: string;
+  heuresMin: number;
+  heuresMax: number;
+  /** Taux horaire propre à la ligne (permet un taux de nuit, un sous-traitant…) */
+  tauxHoraireHt: number;
+  coefficient: number;
+  valide: boolean;
+  origine: LigneOrigine;
+}
+
+export interface StudioChiffrage {
+  id: string;
+  projectId: string;
+  lignes: ChiffrageItem[];
+  heures: HeureItem[];
+  /** Valeurs par défaut appliquées aux nouvelles lignes */
+  coefficientDefaut: number;
+  tauxHoraireDefaut: number;
+  commentaire: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChiffrageTotaux {
+  coutMatiereMin: number;
+  coutMatiereMax: number;
+  coutMoMin: number;
+  coutMoMax: number;
+  coutTotalMin: number;
+  coutTotalMax: number;
+  venteMin: number;
+  venteMax: number;
+  margeMin: number;
+  margeMax: number;
+  /** Taux de marge sur prix de vente, en % (sur la fourchette basse) */
+  tauxMargeMin: number;
+  tauxMargeMax: number;
+  lignesAValider: number;
+}
+
+/** Calcul unique des totaux, utilisé par l'écran et par l'export. */
+export function calculerTotaux(chiffrage: StudioChiffrage): ChiffrageTotaux {
+  let coutMatiereMin = 0;
+  let coutMatiereMax = 0;
+  let venteMin = 0;
+  let venteMax = 0;
+
+  for (const l of chiffrage.lignes) {
+    coutMatiereMin += l.coutHtMin;
+    coutMatiereMax += l.coutHtMax;
+    venteMin += l.coutHtMin * l.coefficient;
+    venteMax += l.coutHtMax * l.coefficient;
+  }
+
+  let coutMoMin = 0;
+  let coutMoMax = 0;
+  for (const h of chiffrage.heures) {
+    const min = h.heuresMin * h.tauxHoraireHt;
+    const max = h.heuresMax * h.tauxHoraireHt;
+    coutMoMin += min;
+    coutMoMax += max;
+    venteMin += min * h.coefficient;
+    venteMax += max * h.coefficient;
+  }
+
+  const coutTotalMin = coutMatiereMin + coutMoMin;
+  const coutTotalMax = coutMatiereMax + coutMoMax;
+
+  return {
+    coutMatiereMin,
+    coutMatiereMax,
+    coutMoMin,
+    coutMoMax,
+    coutTotalMin,
+    coutTotalMax,
+    venteMin,
+    venteMax,
+    margeMin: venteMin - coutTotalMin,
+    margeMax: venteMax - coutTotalMax,
+    tauxMargeMin: venteMin > 0 ? ((venteMin - coutTotalMin) / venteMin) * 100 : 0,
+    tauxMargeMax: venteMax > 0 ? ((venteMax - coutTotalMax) / venteMax) * 100 : 0,
+    lignesAValider:
+      chiffrage.lignes.filter((l) => !l.valide).length +
+      chiffrage.heures.filter((h) => !h.valide).length,
+  };
+}

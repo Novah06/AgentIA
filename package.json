@@ -13,6 +13,8 @@
     "@anthropic-ai/sdk": "^0.114.0",
     "@clerk/nextjs": "^6.9.6",
     "@supabase/supabase-js": "^2.46.1",
+    "exceljs": "^4.4.0",
+    "fflate": "^0.8.3",
     "next": "14.2.25",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

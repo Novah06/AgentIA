@@ -122,7 +122,7 @@ export default function RessourcesPage() {
             {uploading ?? 'Cliquer pour ajouter des fichiers'}
           </span>
           {!uploading && (
-            <span className="text-xs">PDF, images, Excel exporté en PDF, texte — 25 Mo max</span>
+            <span className="text-xs">PDF, Excel, Word, images, texte — 25 Mo max</span>
           )}
         </button>
         <input
@@ -130,7 +130,7 @@ export default function RessourcesPage() {
           type="file"
           multiple
           className="hidden"
-          accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.csv,.md,application/pdf,image/*"
+          accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.csv,.md,.xlsx,.xlsm,.xls,.docx,application/pdf,image/*"
           onChange={(e) => {
             uploadFiles(e.target.files);
             e.target.value = '';

@@ -81,3 +81,19 @@ alter table studio_analyses
 
 create index if not exists idx_studio_analyses_project
   on studio_analyses(project_id, created_at desc);
+
+-- Chiffrage de travail : la version corrigée et validée par le chargé d'affaires
+create table if not exists studio_chiffrages (
+  id uuid primary key default gen_random_uuid(),
+  project_id uuid unique references studio_projects(id) on delete cascade,
+  lignes jsonb not null default '[]',
+  heures jsonb not null default '[]',
+  coefficient_defaut numeric not null default 2.5,
+  taux_horaire_defaut numeric not null default 35,
+  commentaire text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create index if not exists idx_studio_chiffrages_project
+  on studio_chiffrages(project_id);

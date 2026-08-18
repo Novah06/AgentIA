@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { notifyProjectsChanged } from '@/components/studio/StudioShell';
+import { ChiffrageEditor } from '@/components/studio/ChiffrageEditor';
 import {
   ANALYSIS_STEPS,
   ANALYSIS_STEP_LABELS,
@@ -12,6 +13,7 @@ import {
   type PartialAnalysisResult,
   type ProjectStatus,
   type StudioAnalysis,
+  type StudioChiffrage,
   type StudioDocument,
   type StudioProject,
 } from '@/lib/studio/types';
@@ -68,6 +70,8 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
   const [project, setProject] = useState<StudioProject | null>(null);
   const [documents, setDocuments] = useState<StudioDocument[]>([]);
   const [analysis, setAnalysis] = useState<StudioAnalysis | null>(null);
+  const [chiffrage, setChiffrage] = useState<StudioChiffrage | null>(null);
+  const [creatingChiffrage, setCreatingChiffrage] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
@@ -86,6 +90,10 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
       setProject(data.project);
       setDocuments(data.documents ?? []);
       setAnalysis(data.analysis ?? null);
+      const cRes = await fetch(`/api/studio/projects/${params.id}/chiffrage`, {
+        cache: 'no-store',
+      });
+      if (cRes.ok) setChiffrage((await cRes.json()).chiffrage ?? null);
     } catch {
       setError('Impossible de charger le projet.');
     }
@@ -167,6 +175,25 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
     } finally {
       setCurrentStep(null);
       setAnalyzing(false);
+    }
+  }
+
+  /** Reprend le préchiffrage de l'analyse dans un tableau éditable. */
+  async function createChiffrage() {
+    if (!project || creatingChiffrage) return;
+    setCreatingChiffrage(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/studio/projects/${project.id}/chiffrage`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Création du chiffrage impossible');
+      setChiffrage(data.chiffrage);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Création du chiffrage impossible');
+    } finally {
+      setCreatingChiffrage(false);
     }
   }
 
@@ -260,7 +287,7 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
             type="file"
             multiple
             className="hidden"
-            accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.doc,.docx,.eml,application/pdf,image/*"
+            accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.doc,.docx,.xlsx,.xls,.eml,application/pdf,image/*"
             onChange={(e) => {
               uploadFiles(e.target.files);
               e.target.value = '';
@@ -388,6 +415,55 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
               </button>
             </div>
           )
+        )}
+      </section>
+
+      <section className="rounded-xl border border-studio-line bg-white p-6">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-studio-gray">
+            <span aria-hidden className="inline-block h-2 w-2 rounded-[2px] bg-studio-ink" />
+            Chiffrage de travail
+          </h2>
+          {chiffrage && (
+            <button
+              type="button"
+              onClick={createChiffrage}
+              disabled={creatingChiffrage}
+              className="rounded-lg border border-studio-line px-3 py-1.5 text-xs font-semibold transition-colors hover:border-studio-amber hover:text-studio-amber-dark disabled:opacity-50"
+              title="Remplace le tableau par le dernier préchiffrage de l'IA"
+            >
+              {creatingChiffrage ? 'Reprise…' : "Repartir de l'analyse"}
+            </button>
+          )}
+        </div>
+
+        {chiffrage ? (
+          <ChiffrageEditor
+            projectId={project.id}
+            chiffrage={chiffrage}
+            onSaved={setChiffrage}
+          />
+        ) : (
+          <div className="py-2">
+            <p className="mb-4 text-sm leading-relaxed text-studio-gray">
+              Reprenez le préchiffrage de l&apos;IA dans un tableau modifiable : corrigez les
+              quantités et les prix, ajoutez les lignes oubliées, appliquez vos coefficients pour
+              obtenir le prix de vente, cochez ce que vous avez vérifié, puis exportez en Excel.
+            </p>
+            <button
+              type="button"
+              onClick={createChiffrage}
+              disabled={creatingChiffrage || analysis?.status !== 'done'}
+              className="rounded-lg bg-studio-ink px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-studio-coal disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {creatingChiffrage ? 'Création…' : 'Créer le chiffrage depuis l\u2019analyse'}
+            </button>
+            {analysis?.status !== 'done' && (
+              <p className="mt-2 text-xs text-studio-gray">
+                Terminez d&apos;abord l&apos;analyse IA ci-dessus.
+              </p>
+            )}
+          </div>
         )}
       </section>
     </div>

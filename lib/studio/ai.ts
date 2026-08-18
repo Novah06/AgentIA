@@ -14,6 +14,7 @@ import type {
   StudioSource,
 } from './types';
 import { SOURCE_CATEGORY_LABELS } from './types';
+import { extractOfficeText } from './extract';
 
 export const ANALYSIS_MODEL = 'claude-opus-4-8';
 
@@ -211,9 +212,9 @@ const SCHEMA_CHIFFRAGE = {
 
 type ContentBlock = Anthropic.Messages.ContentBlockParam;
 
-function documentBlocks(
+async function documentBlocks(
   docs: { doc: StudioDocument; data: Buffer }[]
-): { blocks: ContentBlock[]; skipped: string[] } {
+): Promise<{ blocks: ContentBlock[]; skipped: string[] }> {
   const blocks: ContentBlock[] = [];
   const skipped: string[] = [];
   let budget = MAX_ATTACHMENT_BYTES;
@@ -320,7 +321,7 @@ export async function analyseContexte(
   docs: { doc: StudioDocument; data: Buffer }[],
   sources: StudioSource[]
 ): Promise<Pick<AnalysisResult, 'resume' | 'prestations'>> {
-  const { blocks, skipped } = documentBlocks(docs);
+  const { blocks, skipped } = await documentBlocks(docs);
 
   const content: ContentBlock[] = [
     ...blocks,
@@ -427,12 +428,21 @@ Sois exhaustif sur les prix et quantités, concis sur le reste. N'invente rien.`
 export async function extractSourceFiche(
   fileName: string,
   fileType: string,
-  data: Buffer
+  data: Buffer,
+  /** Texte déjà extrait (Excel, Word, fichier texte) — prioritaire. */
+  texteBrut?: string | null
 ): Promise<string> {
   const client = getAnthropic();
   let content: ContentBlock[];
 
-  if (fileType === 'application/pdf') {
+  if (texteBrut) {
+    content = [
+      {
+        type: 'text',
+        text: `Rédige la fiche d'extraction de ce document : ${fileName}\n\n${texteBrut.slice(0, 150_000)}`,
+      },
+    ];
+  } else if (fileType === 'application/pdf') {
     content = [
       {
         type: 'document',

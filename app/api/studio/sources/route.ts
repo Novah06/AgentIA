@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getOwnerId } from '@/lib/studio/auth';
 import { addSource, listSources, updateSource } from '@/lib/studio/store';
 import { extractSourceFiche, hasAnthropicConfigured } from '@/lib/studio/ai';
+import { extractOfficeText } from '@/lib/studio/extract';
 import { isSourceCategory } from '@/lib/studio/types';
 
 export const runtime = 'nodejs';
@@ -49,13 +50,29 @@ export async function POST(req: Request) {
   const buffer = Buffer.from(await file.arrayBuffer());
   const isText = type.startsWith('text/');
 
+  // Excel et Word ne sont pas lus nativement par le modèle : on les
+  // convertit en texte avant tout, ce qui rend le tarif fournisseur
+  // exploitable sans passer par une conversion PDF manuelle.
+  let officeText: string | null = null;
+  try {
+    officeText = await extractOfficeText(file.name, type, buffer);
+  } catch (err) {
+    console.error('[studio/sources] extraction bureautique:', err);
+    return NextResponse.json(
+      { error: `Fichier illisible : ${err instanceof Error ? err.message : 'format non reconnu'}` },
+      { status: 422 }
+    );
+  }
+
+  const texteBrut = officeText ?? (isText ? buffer.toString('utf-8').slice(0, 100_000) : null);
+
   try {
     let source = await addSource(ownerId, {
       category,
       name: file.name,
       type,
       buffer,
-      extractedText: isText ? buffer.toString('utf-8').slice(0, 100_000) : null,
+      extractedText: texteBrut,
       status: 'en_attente',
     });
 
@@ -63,7 +80,7 @@ export async function POST(req: Request) {
     // directement injectable dans les analyses.
     if (hasAnthropicConfigured()) {
       try {
-        const fiche = await extractSourceFiche(file.name, type, buffer);
+        const fiche = await extractSourceFiche(file.name, type, buffer, texteBrut);
         source =
           (await updateSource(ownerId, source.id, { extractedText: fiche, status: 'traite' })) ??
           source;
@@ -71,10 +88,10 @@ export async function POST(req: Request) {
         console.error('[studio/sources] extraction:', err);
         source =
           (await updateSource(ownerId, source.id, {
-            status: isText ? 'traite' : 'erreur',
+            status: texteBrut ? 'traite' : 'erreur',
           })) ?? source;
       }
-    } else if (isText) {
+    } else if (texteBrut) {
       // Sans clé API : le texte brut reste exploitable tel quel.
       source = (await updateSource(ownerId, source.id, { status: 'traite' })) ?? source;
     }

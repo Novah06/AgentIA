@@ -2,6 +2,9 @@ import { randomUUID } from 'crypto';
 import { getSupabaseAdmin } from '@/lib/supabase/client';
 import type {
   AnalysisStep,
+  ChiffrageItem,
+  HeureItem,
+  StudioChiffrage,
   NewProjectInput,
   PartialAnalysisResult,
   ProjectPatch,
@@ -30,6 +33,7 @@ type MemStore = {
   docs: Map<string, StudioDocument & { data: Buffer }>;
   sources: Map<string, StudioSource & { data: Buffer }>;
   analyses: Map<string, StudioAnalysis>;
+  chiffrages: Map<string, StudioChiffrage>;
 };
 const globalStore = globalThis as unknown as { __studioMemStore?: MemStore };
 const mem: MemStore =
@@ -39,11 +43,13 @@ const mem: MemStore =
     docs: new Map(),
     sources: new Map(),
     analyses: new Map(),
+    chiffrages: new Map(),
   });
 const memProjects = mem.projects;
 const memDocs = mem.docs;
 const memSources = mem.sources;
 const memAnalyses = mem.analyses;
+const memChiffrages = mem.chiffrages;
 
 const STORAGE_BUCKET = 'studio-docs';
 
@@ -648,4 +654,79 @@ export async function getLatestAnalysis(projectId: string): Promise<StudioAnalys
     .maybeSingle();
   if (error) throw new Error(error.message);
   return data ? mapAnalysis(data) : null;
+}
+
+/* ------------------------------------------------------------------ */
+/* Chiffrage de travail                                                */
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function mapChiffrage(row: any): StudioChiffrage {
+  return {
+    id: row.id,
+    projectId: row.project_id,
+    lignes: row.lignes ?? [],
+    heures: row.heures ?? [],
+    coefficientDefaut: Number(row.coefficient_defaut ?? 2.5),
+    tauxHoraireDefaut: Number(row.taux_horaire_defaut ?? 35),
+    commentaire: row.commentaire,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at ?? row.created_at,
+  };
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+export async function getChiffrage(projectId: string): Promise<StudioChiffrage | null> {
+  const sb = getSupabaseAdmin();
+  if (!sb) return memChiffrages.get(projectId) ?? null;
+  const { data, error } = await sb
+    .from('studio_chiffrages')
+    .select('*')
+    .eq('project_id', projectId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? mapChiffrage(data) : null;
+}
+
+/** Crée ou remplace le chiffrage de travail d'un projet. */
+export async function saveChiffrage(
+  projectId: string,
+  input: {
+    lignes: ChiffrageItem[];
+    heures: HeureItem[];
+    coefficientDefaut: number;
+    tauxHoraireDefaut: number;
+    commentaire: string | null;
+  }
+): Promise<StudioChiffrage> {
+  const sb = getSupabaseAdmin();
+  if (!sb) {
+    const existing = memChiffrages.get(projectId);
+    const chiffrage: StudioChiffrage = {
+      id: existing?.id ?? randomUUID(),
+      projectId,
+      ...input,
+      createdAt: existing?.createdAt ?? nowIso(),
+      updatedAt: nowIso(),
+    };
+    memChiffrages.set(projectId, chiffrage);
+    return chiffrage;
+  }
+  const { data, error } = await sb
+    .from('studio_chiffrages')
+    .upsert(
+      {
+        project_id: projectId,
+        lignes: input.lignes,
+        heures: input.heures,
+        coefficient_defaut: input.coefficientDefaut,
+        taux_horaire_defaut: input.tauxHoraireDefaut,
+        commentaire: input.commentaire,
+        updated_at: nowIso(),
+      },
+      { onConflict: 'project_id' }
+    )
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return mapChiffrage(data);
 }
