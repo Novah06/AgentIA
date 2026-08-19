@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { HelpTip } from '@/components/studio/HelpTip';
+import { useUnsavedChanges } from '@/lib/studio/useUnsavedChanges';
 import { SourcesManager } from '@/components/studio/SourcesManager';
 import {
   BUSINESS_QUESTIONS,
@@ -29,6 +30,8 @@ export default function ProfilPage() {
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useUnsavedChanges(dirty);
 
   const load = useCallback(async () => {
     try {

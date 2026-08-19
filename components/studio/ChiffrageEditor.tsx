@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useUnsavedChanges } from '@/lib/studio/useUnsavedChanges';
 import {
   calculerTotaux,
   type ChiffrageItem,
@@ -58,6 +59,8 @@ export function ChiffrageEditor({
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useUnsavedChanges(dirty);
 
   const totaux = useMemo(
     () =>
@@ -495,7 +498,13 @@ export function ChiffrageEditor({
         </p>
       )}
 
-      <div className="flex flex-wrap items-center gap-3">
+      {/* Barre collante : les corrections non enregistrées restent visibles
+          même en bas d'un long tableau. */}
+      <div
+        className={`sticky bottom-0 -mx-5 flex flex-wrap items-center gap-3 border-t px-5 py-3 backdrop-blur sm:-mx-6 sm:px-6 ${
+          dirty ? 'border-studio-amber bg-amber-50/95' : 'border-studio-line bg-white/95'
+        }`}
+      >
         <button
           type="button"
           onClick={save}
@@ -506,13 +515,13 @@ export function ChiffrageEditor({
         </button>
         <a
           href={`/api/studio/projects/${projectId}/export`}
-          className="rounded-lg border border-studio-line px-5 py-2.5 text-sm font-semibold transition-colors hover:border-studio-amber hover:text-studio-amber-dark"
+          className="rounded-lg border border-studio-line bg-white px-5 py-2.5 text-sm font-semibold transition-colors hover:border-studio-amber hover:text-studio-amber-dark"
         >
           Exporter en Excel
         </a>
         {dirty && (
-          <span className="text-xs text-studio-gray">
-            Enregistrez avant d&apos;exporter pour inclure vos corrections.
+          <span className="text-xs font-medium text-amber-900">
+            Corrections non enregistrées — elles seront perdues si vous quittez la page.
           </span>
         )}
       </div>

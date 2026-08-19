@@ -66,7 +66,16 @@ Exigences de traçabilité :
 - Ne jamais inventer une dimension : si une cote n'est pas lisible, produis une hypothèse marquée "estime" et ajoute la question correspondante.
 - Le préchiffrage est un COÛT DE REVIENT HT en fourchette (min/max), basé en priorité sur la bibliothèque de prix ci-dessous et sur les documents de référence de l'entreprise ; à défaut, sur des prix de marché français en signalant fiabilite "estime". Les heures (atelier, montage, démontage) sont estimées séparément et valorisées au taux horaire de la bibliothèque.
 - Signale les incohérences entre brief, plans et rendus.
-- Réponds intégralement en français.`;
+- Réponds intégralement en français.
+
+Méthode de calcul du préchiffrage :
+- Pour une quantité issue d'un plan, cite dans le champ source la cote exacte lue (« cloison 6,00 m x 3,00 m, cotes plan p.2 ») plutôt qu'une formule vague. Si tu as déduit la quantité d'une échelle ou d'un rendu sans cote, marque-la « estime » et dis-le.
+- Applique le taux de chute de l'entreprise aux surfaces et longueurs de matière avant de calculer un coût : la quantité achetée n'est pas la quantité posée.
+- Quand une matière est facturée à la plaque entière, calcule le nombre de plaques nécessaires en arrondissant à l'entier supérieur et facture ce nombre — jamais une fraction de plaque.
+- Décompose plutôt que de globaliser : une ligne par matière ou prestation identifiable, avec sa quantité et son unité. Une ligne « divers » ou « forfait global » n'aide pas le chargé d'affaires à corriger.
+- Les totaux doivent être exactement la somme des lignes que tu produis. Recalcule-les avant de répondre.
+- Une fourchette dont la borne haute égale la borne basse signifie que tu es certain du prix ; ne l'utilise que dans ce cas. Sinon, écarte les bornes proportionnellement à ton incertitude.
+- N'inclus pas la marge ni le prix de vente : le préchiffrage est un coût de revient. Le coefficient est appliqué ensuite par le chargé d'affaires.`;
 
 function buildSystem(sources: StudioSource[], profile?: StudioProfile | null): string {
   const parts = [SYSTEM_CORE, '', '## Bibliothèque de prix de l\'entreprise', pricingLibraryText()];
@@ -417,12 +426,42 @@ export async function analyseChiffrage(
     },
   ];
 
-  return askJson(
+  const resultat = await askJson<Pick<AnalysisResult, 'prechiffrage' | 'confianceGlobale'>>(
     buildSystem(sources, profile),
     content,
     SCHEMA_CHIFFRAGE as unknown as Record<string, unknown>,
     16000
   );
+
+  return { ...resultat, prechiffrage: recalculerTotaux(resultat.prechiffrage) };
+}
+
+/**
+ * Les modèles se trompent parfois en additionnant. Les totaux affichés
+ * doivent toujours correspondre aux lignes : on les recalcule, et on
+ * signale l'écart dans le commentaire quand il est significatif, pour que
+ * le chargé d'affaires sache que la proposition d'origine était bancale.
+ */
+function recalculerTotaux(
+  prechiffrage: AnalysisResult['prechiffrage']
+): AnalysisResult['prechiffrage'] {
+  const sommeMin = prechiffrage.lignes.reduce((s, l) => s + (l.coutHtMin || 0), 0);
+  const sommeMax = prechiffrage.lignes.reduce((s, l) => s + (l.coutHtMax || 0), 0);
+
+  const annonceMin = prechiffrage.totalHtMin || 0;
+  const ecart = Math.abs(sommeMin - annonceMin);
+  const ecartNotable = sommeMin > 0 && ecart / sommeMin > 0.02 && ecart > 10;
+
+  const note = ecartNotable
+    ? `Totaux recalculés depuis les lignes (l'estimation annonçait ${Math.round(annonceMin)} € en borne basse contre ${Math.round(sommeMin)} € de somme réelle) : vérifiez les lignes avec attention.`
+    : null;
+
+  return {
+    ...prechiffrage,
+    totalHtMin: sommeMin,
+    totalHtMax: sommeMax,
+    commentaire: [prechiffrage.commentaire, note].filter(Boolean).join(' ') || null,
+  };
 }
 
 /* ------------------------------------------------------------------ */

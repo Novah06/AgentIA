@@ -126,9 +126,10 @@ export default function LandingPage() {
           ))}
         </div>
         <p className="mx-auto mt-10 max-w-2xl text-center text-sm leading-relaxed text-studio-gray">
-          Metria apprend de votre entreprise : vos tarifs fournisseurs, vos anciens dossiers et
-          vos règles métier alimentent chaque analyse. Plus vous l&apos;utilisez, plus les
-          estimations sont justes.
+          Chaque analyse s&apos;appuie sur vos tarifs fournisseurs, vos anciens dossiers et vos
+          règles métier : plus vous les renseignez, plus les estimations ressemblent aux vôtres.
+          Ces informations restent dans votre compte et ne servent jamais à entraîner un modèle
+          partagé — le savoir-faire que vous y déposez ne profite qu&apos;à vous.
         </p>
       </section>
 
