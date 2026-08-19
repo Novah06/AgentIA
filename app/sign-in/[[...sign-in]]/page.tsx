@@ -33,6 +33,10 @@ export default function SignInPage() {
               },
               elements: {
                 card: 'border border-studio-line shadow-xl',
+                // Les comptes sont créés en interne : proposer une
+                // inscription n'aurait aucun effet et prêterait à confusion.
+                footer: 'hidden',
+                footerAction: 'hidden',
                 formButtonPrimary:
                   'bg-studio-amber hover:bg-studio-amber-dark text-studio-ink font-semibold',
                 footerActionLink: 'text-studio-amber-dark hover:text-studio-ink',

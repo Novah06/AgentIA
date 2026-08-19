@@ -107,3 +107,31 @@ create table if not exists studio_profiles (
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+
+-- ====================================================================
+-- SÉCURITÉ — À EXÉCUTER IMPÉRATIVEMENT
+-- --------------------------------------------------------------------
+-- Sans « row level security », les tables sont accessibles en lecture et
+-- en écriture via l'API REST de Supabase avec la clé « anon », qui est
+-- publique par conception. N'importe qui pourrait alors lire les dossiers
+-- de tous les clients.
+--
+-- L'application accède aux données avec la clé « service_role », qui
+-- contourne RLS : activer RLS sans définir de politique bloque tout accès
+-- extérieur sans rien changer au fonctionnement du logiciel.
+-- ====================================================================
+
+alter table studio_projects   enable row level security;
+alter table studio_documents  enable row level security;
+alter table studio_sources    enable row level security;
+alter table studio_analyses   enable row level security;
+alter table studio_chiffrages enable row level security;
+alter table studio_profiles   enable row level security;
+
+-- Aucune politique n'est créée : par défaut, RLS activé sans politique
+-- refuse tout accès aux rôles anon et authenticated. Le service_role,
+-- utilisé uniquement côté serveur, n'est pas soumis à RLS.
+
+-- Vérification : la colonne rowsecurity doit valoir true partout.
+-- select tablename, rowsecurity from pg_tables
+--   where schemaname = 'public' and tablename like 'studio_%';

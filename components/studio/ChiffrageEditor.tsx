@@ -519,6 +519,14 @@ export function ChiffrageEditor({
         >
           Exporter en Excel
         </a>
+        <a
+          href={`/api/studio/projects/${projectId}/synthese`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="rounded-lg border border-studio-line bg-white px-5 py-2.5 text-sm font-semibold transition-colors hover:border-studio-amber hover:text-studio-amber-dark"
+        >
+          Synthèse PDF
+        </a>
         {dirty && (
           <span className="text-xs font-medium text-amber-900">
             Corrections non enregistrées — elles seront perdues si vous quittez la page.

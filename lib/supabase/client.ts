@@ -1,17 +1,14 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-let browserClient: SupabaseClient | null = null;
 let serverClient: SupabaseClient | null = null;
 
-export function getSupabaseBrowser(): SupabaseClient | null {
-  if (browserClient) return browserClient;
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) return null;
-  browserClient = createClient(url, key);
-  return browserClient;
-}
-
+/**
+ * Client Supabase serveur uniquement.
+ *
+ * Aucun client navigateur n'est exposé : toutes les lectures passent par
+ * les routes API, qui vérifient l'identité et le cloisonnement par
+ * entreprise. La clé publique « anon » n'est donc pas nécessaire.
+ */
 export function getSupabaseAdmin(): SupabaseClient | null {
   if (serverClient) return serverClient;
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
