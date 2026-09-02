@@ -74,6 +74,26 @@ Les prompts (`lib/agents/prompts.ts`) sont intégrés mot pour mot depuis la sp�
 
 Le contexte client (entreprise, secteur, ville, seuils) est injecté dans le prompt à chaque requête via `buildSystemPrompt()`.
 
+## Portefeuille Pokémon (`/tcg`)
+
+Application de suivi de collection Pokémon, indépendante du reste du dépôt :
+collection, coffre-fort séparé en cartes loose / cartes gradées / produits
+scellés, cotes en euros relevées à 00 h et 12 h, courbes d'évolution par
+référence et pour le coffre entier, et scan d'item par photo (identification,
+état, cote).
+
+```bash
+npm run dev                        # http://localhost:3000/tcg
+npm run tcg:catalogue -- --extensions 20   # catalogue FR (TCGdex)
+npm run tcg:prix                   # relevé de cotes immédiat
+npm run tcg:planifier              # relevés automatiques 00 h / 12 h
+```
+
+Fonctionne sans configuration (catalogue d'amorce, données en mémoire) ; avec
+Supabase et Clerk, chaque compte a son propre coffre-fort persistant.
+Mise en service détaillée : [`docs/portefeuille-pokemon.md`](docs/portefeuille-pokemon.md).
+Schéma SQL : [`lib/supabase/schema-tcg.sql`](lib/supabase/schema-tcg.sql).
+
 ## Déploiement
 
 Compatible Vercel sans configuration additionnelle. Définir les variables d'environnement dans le dashboard du projet.

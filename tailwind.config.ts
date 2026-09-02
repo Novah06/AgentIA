@@ -24,6 +24,25 @@ const config: Config = {
         aria: '#00e5ff',
         nova: '#3dffb0',
         felix: '#f0c040',
+        // Palette Portefeuille Pokémon — surface sombre dédiée, distincte du
+        // cyan SynapseAI. Les trois teintes de séries (loose / gradée /
+        // scellé) sont validées pour le daltonisme sur la surface #121a2b.
+        tcg: {
+          ink: '#0a0f1a',
+          card: '#121a2b',
+          'card-hover': '#18233a',
+          line: '#1f2c44',
+          gold: '#f2c14e',
+          'gold-dim': '#c99a2e',
+          primary: '#eef2f8',
+          secondary: '#93a3bd',
+          muted: '#5b6c86',
+          loose: '#3987e5',
+          gradee: '#d95926',
+          scelle: '#199e70',
+          up: '#199e70',
+          down: '#e66767',
+        },
         // Palette Metria (studio d'avant-chiffrage) — dérivée du logo atelier
         // (noir profond, orange ambré, gris), mais DA volontairement distincte.
         studio: {

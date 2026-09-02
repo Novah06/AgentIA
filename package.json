@@ -7,7 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "tcg:catalogue": "node scripts/tcg-bot.mjs catalogue",
+    "tcg:prix": "node scripts/tcg-bot.mjs prix --force",
+    "tcg:import": "node scripts/tcg-bot.mjs import",
+    "tcg:planifier": "node scripts/tcg-bot.mjs planifier"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.114.0",
